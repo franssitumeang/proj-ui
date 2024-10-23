@@ -48,4 +48,4 @@ def df_to_db(df: pl.DataFrame, table_name: str):
     
 def read_database(engine, query):
     df = pd.read_sql(query, con=engine)
-    return df    
+    return df

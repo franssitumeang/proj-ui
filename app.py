@@ -1,5 +1,8 @@
 import folium
 import streamlit as st
+st.set_page_config(layout = "wide")
+
+from auth import check_password
 import pandas as pd
 import plotly.graph_objects as go
 # from utils.util import engine, read_database
@@ -8,6 +11,9 @@ from streamlit_folium import st_folium
 from branca.element import Template, MacroElement
 from st_on_hover_tabs import on_hover_tabs
 
+
+if not check_password():
+    st.stop()
 
 # Create the legend template as an HTML element
 legend_template = """
@@ -29,7 +35,7 @@ legend_template = """
 </style>
 {% endmacro %}
 """
-st.set_page_config(layout = "wide")
+
 st.markdown('<style>' + open('./style.css').read() + '</style>', unsafe_allow_html=True)
 st.markdown("""
     <style>
@@ -351,7 +357,7 @@ if tabs =='Traffic Counting':
                 st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_2_hk}</p>', unsafe_allow_html=True)
                 
         
-        st.markdown(f"<h1 style='text-align: center; color: black;'>Profil Hari Libur - {last_object_clicked_tooltip} ({arah_dari} - {arah_menuju})</h1>", unsafe_allow_html=True)
+        st.markdown(f"<h1 style='text-align: center; color: black;'>Profil Hari Libur - {last_object_clicked_tooltip} ({arah_menuju} - {arah_dari})</h1>", unsafe_allow_html=True)
         st.write("---")
         c1, c2, c3 = st.columns([1,1,1])
         with c1.container(border=True):
@@ -400,3 +406,8 @@ if tabs =='Traffic Counting':
                 st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_2_hl}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_2_hl}</p>', unsafe_allow_html=True)
 
+elif tabs =='Asal Tujuan':
+    st.header("Survei Asal Tujuan")
+
+else:
+    st.header("Survei Travel Journey")
