@@ -51,7 +51,7 @@ with st.sidebar:
                          iconName=['dashboard', 'construction', 'construction'], default_choice=0)
 
 
-@st.cache_data
+# @st.cache_data
 def fetch_base_data():
     # query = """
     #     with data_cor AS (
@@ -98,7 +98,7 @@ def fetch_base_data():
     # df = read_database(engine=engine, query=query)
     return pd.read_pickle("fetch_base_data.pkl")
 
-@st.cache_data
+# @st.cache_data
 def fetch_stats_data():
     # query = """
     #         select
@@ -220,7 +220,6 @@ df_stats = fetch_stats_data()
 
 if tabs =='Traffic Counting':
     st.header("Survei Traffic Counting")
-    
     c1, c2 = st.columns([2,4.3])
     with c1:
         region_select = st.selectbox("Filter Region", ['JABO', 'BDG', 'JAWA'], key=f"region_select")
@@ -264,10 +263,7 @@ if tabs =='Traffic Counting':
             m, width=1200, height=585, returned_objects=["last_object_clicked_tooltip"], key=f"{key}_map"
         )
     
-    if output[key]["last_object_clicked_tooltip"]:
-        show_detail["click"] = output[key]["last_object_clicked_tooltip"]
-        
-    last_object_clicked_tooltip = show_detail["click"] if "click" in show_detail else None
+    last_object_clicked_tooltip = output[key]["last_object_clicked_tooltip"]
     with c1.container(border=True):
         if last_object_clicked_tooltip:
             durasi = df_base_selected.loc[df_base_selected['kode_lokasi'] == last_object_clicked_tooltip, 'durasi'].iloc[0]
