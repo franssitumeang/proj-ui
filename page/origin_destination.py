@@ -331,7 +331,7 @@ def chart_vehicle_origin_destination(kode_titik):
     with st.container(border=True):
         fig_matrix_origin_dest = px.imshow(pivot_matrix_origin_dest, text_auto=True, aspect="auto", color_continuous_scale="Blues")
         fig_matrix_origin_dest.update_traces(
-            hovertemplate="Dari <b>%{y}</b> ke <b>%{x}</b>: <b>%{z}</b><extra></extra>"
+            hovertemplate="Dari <b>%{x}</b> ke <b>%{y}</b>: <b>%{z}</b><extra></extra>"
         )
         fig_matrix_origin_dest.update_layout(title="Matriks Asal Tujuan Perjalanan", xaxis_title="Tujuan", yaxis_title="Asal", height=900)
 
