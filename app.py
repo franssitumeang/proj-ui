@@ -6,6 +6,8 @@ from auth import check_password
 import pandas as pd
 import plotly.graph_objects as go
 # from utils.util import engine, read_database
+from page.origin_destination import chart_vehicle_origin_destination, show
+from page.travel_journey import show_travel_journey
 
 from streamlit_folium import st_folium
 from branca.element import Template, MacroElement
@@ -47,8 +49,8 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 with st.sidebar:
-    tabs = on_hover_tabs(tabName=['Traffic Counting', 'Asal Tujuan', 'Travel Journey'], 
-                         iconName=['dashboard', 'construction', 'construction'], default_choice=0)
+    tabs = on_hover_tabs(tabName=['Traffic Counting', 'Travel Journey', 'Asal Tujuan'], 
+                         iconName=['dashboard', 'construction', 'repeat_one'], default_choice=0)
 
 
 # @st.cache_data
@@ -96,7 +98,7 @@ def fetch_base_data():
     #     ;
     # """
     # df = read_database(engine=engine, query=query)
-    return pd.read_pickle("fetch_base_data.pkl")
+    return pd.read_pickle("data/fetch_base_data.pkl")
 
 # @st.cache_data
 def fetch_stats_data():
@@ -134,7 +136,7 @@ def fetch_stats_data():
     #     ;
     # """
     # df = read_database(engine=engine, query=query)
-    return pd.read_pickle("fetch_stats_data.pkl")
+    return pd.read_pickle("data/fetch_stats_data.pkl")
 
 def chart_stats(df_stats:pd.DataFrame, kode_lokasi:str, filter_sheet:str, fig_title:str):
     df_stats_filtered = df_stats.loc[(df_stats['kode_lokasi'] == kode_lokasi) & (df_stats['sheet'].str.contains(filter_sheet))]
@@ -402,8 +404,12 @@ if tabs =='Traffic Counting':
                 st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_2_hl}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_2_hl}</p>', unsafe_allow_html=True)
 
-elif tabs =='Asal Tujuan':
-    st.header("Survei Asal Tujuan")
+elif tabs =='Travel Journey':
+    st.header("Survei Travel Journey")
+    show_travel_journey()
 
 else:
-    st.header("Survei Travel Journey")
+    st.header("Survei Asal Tujuan")
+    show()
+    # chart_vehicle_origin_destination('RSI2')
+    
