@@ -1,0 +1,11 @@
+polars
+pandas
+fastexcel
+openpyxl==3.1.5
+sqlalchemy
+streamlit
+streamlit-on-Hover-tabs
+plotly==5.24.1
+streamlit_folium==0.23.1
+streamlit-authenticator
+streamlit-cookies-manager
