@@ -136,46 +136,50 @@ def get_data_origin_dest_agg():
     #     end count_origin_dest_kab_kota,
     #     case
     #         when asal_kab_kota_original in ('BANDAR LAMPUNG', 'BENGKULU', 'JAMBI', 'LAMPUNG', 'RIAU', 'SUMATERA BARAT',
-    #                  'SUMATERA SELATAN', 'SUMATERA UTARA', 'ACEH', 'BANGKA BELITUNG', 'KAB. LAMPUNG BARAT',
-    #                  'KAB. LAMPUNG SELATAN', 'KAB. SIAK', 'KOTA MEDAN', 'KOTA PAGAR ALAM', 'KOTA PALEMBANG',
-    #                  'KOTA PEKANBARU') then -5.933002183915104
+    #                 'SUMATERA SELATAN', 'SUMATERA UTARA', 'ACEH', 'BANGKA BELITUNG', 'KAB. LAMPUNG BARAT',
+    #                 'KAB. LAMPUNG SELATAN', 'KAB. SIAK', 'KOTA MEDAN', 'KOTA PAGAR ALAM', 'KOTA PALEMBANG',
+    #                 'KOTA PEKANBARU') then -5.933002183915104
     #         WHEN asal_kab_kota_original in ('BALI', 'KAB. BULELENG', 'NUSA TENGGARA BARAT', 'KAB. SUMBAWA', 'KOTA DENPASAR',
-    #                  'KOTA MATARAM', 'NUSA TENGGARA BARAT', 'NUSA TENGGARA TIMUR') then -8.142900298290554
+    #                 'KOTA MATARAM', 'NUSA TENGGARA BARAT', 'NUSA TENGGARA TIMUR') then -8.142900298290554
     #         WHEN asal_kab_kota_original in ('IKN', 'KALIMANTAN SELATAN', 'BALIKPAPAN', 'KALIMANTAN TENGAH',
-    #                  'SULAWESI SELATAN') then -7.219475761110419
+    #                 'SULAWESI SELATAN') then -7.219475761110419
+    #         WHEN asal_kab_kota_original in ('KAB. ADM. KEP. SERIBU') then -6.1049698996928985
     #         else asal_latitude
     #     end as asal_latitude,
     #     case
     #         when asal_kab_kota_original in ('BANDAR LAMPUNG', 'BENGKULU', 'JAMBI', 'LAMPUNG', 'RIAU', 'SUMATERA BARAT',
-    #                  'SUMATERA SELATAN', 'SUMATERA UTARA', 'ACEH', 'BANGKA BELITUNG', 'KAB. LAMPUNG BARAT',
-    #                  'KAB. LAMPUNG SELATAN', 'KAB. SIAK', 'KOTA MEDAN', 'KOTA PAGAR ALAM', 'KOTA PALEMBANG',
-    #                  'KOTA PEKANBARU') then 105.99945230749717
+    #                 'SUMATERA SELATAN', 'SUMATERA UTARA', 'ACEH', 'BANGKA BELITUNG', 'KAB. LAMPUNG BARAT',
+    #                 'KAB. LAMPUNG SELATAN', 'KAB. SIAK', 'KOTA MEDAN', 'KOTA PAGAR ALAM', 'KOTA PALEMBANG',
+    #                 'KOTA PEKANBARU') then 105.99945230749717
     #         WHEN asal_kab_kota_original in ('BALI', 'KAB. BULELENG', 'NUSA TENGGARA BARAT', 'KAB. SUMBAWA', 'KOTA DENPASAR',
-    #                  'KOTA MATARAM', 'NUSA TENGGARA BARAT', 'NUSA TENGGARA TIMUR') then 114.40067867683435
+    #                 'KOTA MATARAM', 'NUSA TENGGARA BARAT', 'NUSA TENGGARA TIMUR') then 114.40067867683435
     #         WHEN asal_kab_kota_original in ('IKN', 'KALIMANTAN SELATAN', 'BALIKPAPAN', 'KALIMANTAN TENGAH',
-    #                  'SULAWESI SELATAN') then 112.7359184414066
+    #                 'SULAWESI SELATAN') then 112.7359184414066
+    #         WHEN asal_kab_kota_original in ('KAB. ADM. KEP. SERIBU') then 106.77171544080802
     #         else asal_longitude
     #     end as asal_longitude,
     #     case
-    #        when tujuan_kab_kota_original in ('BANDAR LAMPUNG', 'BENGKULU', 'JAMBI', 'LAMPUNG', 'RIAU', 'SUMATERA BARAT',
-    #                  'SUMATERA SELATAN', 'SUMATERA UTARA', 'ACEH', 'BANGKA BELITUNG', 'KAB. LAMPUNG BARAT',
-    #                  'KAB. LAMPUNG SELATAN', 'KAB. SIAK', 'KOTA MEDAN', 'KOTA PAGAR ALAM', 'KOTA PALEMBANG',
-    #                  'KOTA PEKANBARU') then -5.933002183915104
+    #     when tujuan_kab_kota_original in ('BANDAR LAMPUNG', 'BENGKULU', 'JAMBI', 'LAMPUNG', 'RIAU', 'SUMATERA BARAT',
+    #                 'SUMATERA SELATAN', 'SUMATERA UTARA', 'ACEH', 'BANGKA BELITUNG', 'KAB. LAMPUNG BARAT',
+    #                 'KAB. LAMPUNG SELATAN', 'KAB. SIAK', 'KOTA MEDAN', 'KOTA PAGAR ALAM', 'KOTA PALEMBANG',
+    #                 'KOTA PEKANBARU') then -5.933002183915104
     #         WHEN tujuan_kab_kota_original in ('BALI', 'KAB. BULELENG', 'NUSA TENGGARA BARAT', 'KAB. SUMBAWA', 'KOTA DENPASAR',
-    #                  'KOTA MATARAM', 'NUSA TENGGARA BARAT', 'NUSA TENGGARA TIMUR') then -8.142900298290554
+    #                 'KOTA MATARAM', 'NUSA TENGGARA BARAT', 'NUSA TENGGARA TIMUR') then -8.142900298290554
     #         WHEN tujuan_kab_kota_original in ('IKN', 'KALIMANTAN SELATAN', 'BALIKPAPAN', 'KALIMANTAN TENGAH',
-    #                  'SULAWESI SELATAN') then -7.219475761110419
+    #                 'SULAWESI SELATAN') then -7.219475761110419
+    #         WHEN tujuan_kab_kota_original in ('KAB. ADM. KEP. SERIBU') then -6.1049698996928985
     #         else tujuan_latitude
     #     end as tujuan_latitude,
     #     case
     #         when tujuan_kab_kota_original in ('BANDAR LAMPUNG', 'BENGKULU', 'JAMBI', 'LAMPUNG', 'RIAU', 'SUMATERA BARAT',
-    #                  'SUMATERA SELATAN', 'SUMATERA UTARA', 'ACEH', 'BANGKA BELITUNG', 'KAB. LAMPUNG BARAT',
-    #                  'KAB. LAMPUNG SELATAN', 'KAB. SIAK', 'KOTA MEDAN', 'KOTA PAGAR ALAM', 'KOTA PALEMBANG',
-    #                  'KOTA PEKANBARU') then 105.99945230749717
+    #                 'SUMATERA SELATAN', 'SUMATERA UTARA', 'ACEH', 'BANGKA BELITUNG', 'KAB. LAMPUNG BARAT',
+    #                 'KAB. LAMPUNG SELATAN', 'KAB. SIAK', 'KOTA MEDAN', 'KOTA PAGAR ALAM', 'KOTA PALEMBANG',
+    #                 'KOTA PEKANBARU') then 105.99945230749717
     #         WHEN tujuan_kab_kota_original in ('BALI', 'KAB. BULELENG', 'NUSA TENGGARA BARAT', 'KAB. SUMBAWA', 'KOTA DENPASAR',
-    #                  'KOTA MATARAM', 'NUSA TENGGARA BARAT', 'NUSA TENGGARA TIMUR') then 114.40067867683435
+    #                 'KOTA MATARAM', 'NUSA TENGGARA BARAT', 'NUSA TENGGARA TIMUR') then 114.40067867683435
     #         WHEN tujuan_kab_kota_original in ('IKN', 'KALIMANTAN SELATAN', 'BALIKPAPAN', 'KALIMANTAN TENGAH',
-    #                  'SULAWESI SELATAN') then 112.7359184414066
+    #                 'SULAWESI SELATAN') then 112.7359184414066
+    #         WHEN tujuan_kab_kota_original in ('KAB. ADM. KEP. SERIBU') then 106.77171544080802
     #         else tujuan_longitude
     #     end as tujuan_longitude
     # from agg_data

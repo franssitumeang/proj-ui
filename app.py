@@ -224,7 +224,12 @@ if tabs =='Traffic Counting':
     st.header("Survei Traffic Counting")
     c1, c2 = st.columns([2,4.3])
     with c1:
-        region_select = st.selectbox("Filter Region", ['JABO', 'BDG', 'JAWA'], key=f"region_select")
+        display_text_select = {
+            "JABO": "JABODETABEK",
+            "BDG": "BANDUNG RAYA",
+            "JAWA": "JAWA"
+        }
+        region_select = st.selectbox("Filter Region", ['JABO', 'BDG', 'JAWA'], key=f"region_select", format_func=lambda x: display_text_select[x])
         show_detail["region"] = region_select
     
     with c2:

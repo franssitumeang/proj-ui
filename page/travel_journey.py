@@ -3,7 +3,6 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-# st.set_page_config(layout='wide')
 
 @st.cache_data
 def load_travel_journey_data():
@@ -323,7 +322,7 @@ def display_statistics_in_columns(direction: str, df_dir: pd.DataFrame):
     Display statistics for a given direction in a streamlit column
     """
     with st.container():
-        st.markdown(f"**Statiski untuk {direction}**")
+        st.markdown(f"**Statistik untuk {direction}**")
         col1, col2 = st.columns(2)
         
         with col1:
@@ -335,297 +334,13 @@ def display_statistics_in_columns(direction: str, df_dir: pd.DataFrame):
             st.metric("Kecepatan minimum", f"{df_dir['kmph'].min()} km/jam")
             st.metric("Waktu mulai", df_dir['timestamp'].min())
             st.metric("Waktu akhir", df_dir['timestamp'].max())
-
-def generate_two_route_maps(df:pd.DataFrame):
-    # Get unique direction
-    direction_a_start = df[df['arah'] == 'arah A']['arah_awal'].iloc[0]
-    direction_a_end = df[df['arah'] == 'arah A']['arah_akhir'].iloc[0]
-    direction_b_start = df[df['arah'] == 'arah B']['arah_awal'].iloc[0]
-    direction_b_end = df[df['arah'] == 'arah B']['arah_akhir'].iloc[0]
-
-    # Create automated titles
-    title_a = f'Arah A ({direction_a_start} → {direction_a_end})'
-    title_b = f'Arah B ({direction_b_start} → {direction_b_end})'
-    # Create two subplots side by side
-    fig = make_subplots(
-        rows=1, cols=2,
-        subplot_titles=(title_a, title_b),
-        specs=[[{"type": "mapbox"}, {"type": "mapbox"}]],
-        horizontal_spacing=0.05
-    )
-
-    # Define speed ranges
-    speed_ranges = [
-        (0, 20, 'gray', '0-20 km/jam'),
-        (21, 40, 'red', '21-40 km/jam'),
-        (41, 60, 'orange', '41-60 km/jam'),
-        (61, float('inf'), 'blue', '61+ km/jam')
-    ]
-
-    # Function to add traces for specific direction
-    def add_direction_traces(df_direction, col_num):
-        for min_speed, max_speed, color, label in speed_ranges:
-            mask = (df_direction['kmph'] >= min_speed) & (df_direction['kmph'] <= max_speed)
-            df_range = df_direction[mask]
-
-            if not df_range.empty:
-                fig.add_trace(
-                    go.Scattermapbox(
-                        lon=df_range['x'],
-                        lat=df_range['y'],
-                        mode='markers',
-                        marker=dict(
-                            size=4,
-                            color=color,
-                            opacity=0.8
-                        ),
-                        name=label,
-                        hovertemplate=(
-                            'Kecepatan: %{text} km/jam<br>'
-                            'Waktu: %{customdata}<br>'
-                            'Lat: %{lat}<br>'
-                            'Lon: %{lon}'
-                            '<extra></extra>'
-                        ),
-                        text=df_range['kmph'],
-                        customdata=df_range['timestamp'],
-                        showlegend=(col_num == 1) # Show legend only for first subplot
-                    ),
-                    row=1, col=col_num
-                )
-    
-    # Split data by direction
-    df_a = df[df['arah'] == 'arah A']
-    df_b = df[df['arah'] == 'arah B']
-
-    # Calculate centers for each direction
-    center_a = dict(lat=df_a['y'].mean(), lon=df_a['x'].mean())
-    center_b = dict(lat=df_b['y'].mean(), lon=df_b['x'].mean())
-
-    # Add traces for each direction
-    add_direction_traces(df_a, 1)
-    add_direction_traces(df_b, 2)
-
-    # Update layout
-    fig.update_layout(
-        mapbox1=dict(
-            style='carto-positron',
-            center=center_a,
-            zoom=8
-        ),
-        mapbox2=dict(
-            style='carto-positron',
-            center=center_b,
-            zoom=8
-        ),
-        margin=dict(l=0, r=0, t=30, b=0),
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=-0.1,
-            xanchor="center",
-            x=0.5,
-            bgcolor="rgba(255, 255, 255, 0.8)",
-            bordercolor="rgba(0, 0, 0, 0.2)",
-            borderwidth=1
-        ),
-        legend_font_color='black',
-        height=500,
-        width=1600,
-        title='Peta Rute'
-    )
-
-    # st.subheader('Peta Rute')
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Write some statistics for each direction
-    # Display statistics in columns
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        with st.container(border=True):
-            display_statistics_in_columns(title_a, df_a)
-    
-    with col2:
-        with st.container(border=True):
-            display_statistics_in_columns(title_b, df_b)
-
-def generate_four_route_maps(df: pd.DataFrame):
-    # Get unique directions and create titles
-    directions = {
-        'AM': {
-            'A': df[df['arah'] == 'arah A - AM'],
-            'B': df[df['arah'] == 'arah B - AM']
-        },
-        'PM': {
-            'A': df[df['arah'] == 'arah A - PM'],
-            'B': df[df['arah'] == 'arah B - PM']
-        }
-    }
-    
-    # Create titles for each subplot
-    titles = {}
-    for period in ['AM', 'PM']:
-        for direction in ['A', 'B']:
-            df_dir = directions[period][direction]
-            if not df_dir.empty:
-                start = df_dir['arah_awal'].iloc[0]
-                end = df_dir['arah_akhir'].iloc[0]
-                titles[f'{direction}_{period}'] = f'Arah {direction} - {period} ({start} → {end})'
-
-    # Create four subplots in a 2x2 grid
-    fig = make_subplots(
-        rows=2, cols=2,
-        subplot_titles=(
-            titles['A_AM'], titles['B_AM'],
-            titles['A_PM'], titles['B_PM']
-        ),
-        specs=[[{"type": "mapbox"}, {"type": "mapbox"}],
-               [{"type": "mapbox"}, {"type": "mapbox"}]],
-        vertical_spacing=0.1,
-        horizontal_spacing=0.05
-    )
-
-    # Define speed ranges
-    speed_ranges = [
-        (0, 20, 'gray', '0-20 km/jam'),
-        (21, 40, 'red', '21-40 km/jam'),
-        (41, 60, 'orange', '41-60 km/jam'),
-        (61, float('inf'), 'blue', '61+ km/jam')
-    ]
-
-    # Function to add traces for specific direction
-    def add_direction_traces(df_direction, row, col, is_first=False):
-        for min_speed, max_speed, color, label in speed_ranges:
-            mask = (df_direction['kmph'] >= min_speed) & (df_direction['kmph'] <= max_speed)
-            df_range = df_direction[mask]
-
-            if not df_range.empty:
-                fig.add_trace(
-                    go.Scattermapbox(
-                        lon=df_range['x'],
-                        lat=df_range['y'],
-                        mode='markers',
-                        marker=dict(
-                            size=4,
-                            color=color,
-                            opacity=0.8
-                        ),
-                        name=label,
-                        hovertemplate=(
-                            'Keceptana: %{text} km/jam<br>'
-                            'Waktu: %{customdata}<br>'
-                            'Lat: %{lat}<br>'
-                            'Lon: %{lon}'
-                            '<extra></extra>'
-                        ),
-                        text=df_range['kmph'],
-                        customdata=df_range['timestamp'],
-                        showlegend=is_first  # Show legend only for first subplot
-                    ),
-                    row=row, col=col
-                )
-
-    # Add traces for each direction and time period
-    subplot_positions = {
-        ('A', 'AM'): (1, 1),
-        ('B', 'AM'): (1, 2),
-        ('A', 'PM'): (2, 1),
-        ('B', 'PM'): (2, 2)
-    }
-
-    # Calculate centers for each subplot
-    centers = {}
-    for period in ['AM', 'PM']:
-        for direction in ['A', 'B']:
-            df_dir = directions[period][direction]
-            if not df_dir.empty:
-                centers[f'{direction}_{period}'] = dict(
-                    lat=df_dir['y'].mean(),
-                    lon=df_dir['x'].mean()
-                )
-
-    # Add all traces
-    is_first = True
-    for (direction, period), (row, col) in subplot_positions.items():
-        df_dir = directions[period][direction]
-        if not df_dir.empty:
-            add_direction_traces(df_dir, row, col, is_first)
-            is_first = False
-
-    # Update layout with four mapboxes
-    fig.update_layout(
-        mapbox1=dict(
-            style='carto-positron',
-            center=centers['A_AM'],
-            zoom=8
-        ),
-        mapbox2=dict(
-            style='carto-positron',
-            center=centers['B_AM'],
-            zoom=8
-        ),
-        mapbox3=dict(
-            style='carto-positron',
-            center=centers['A_PM'],
-            zoom=8
-        ),
-        mapbox4=dict(
-            style='carto-positron',
-            center=centers['B_PM'],
-            zoom=8
-        ),
-        margin=dict(l=0, r=0, t=30, b=0),
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=-0.1,
-            xanchor="center",
-            x=0.5,
-            bgcolor="rgba(255, 255, 255, 0.8)",
-            bordercolor="rgba(0, 0, 0, 0.2)",
-            borderwidth=1
-        ),
-        legend_font_color='black',
-        height=800,  # Increased height to accommodate 2x2 grid
-        width=1600,
-        title='Peta Rute'
-    )
-    # st.subheader('Peta Rute')
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Display statistics in a 2x2 grid
-    col1, col2 = st.columns(2)
-
-    # Write statistics for each direction and time period
-    with col1:
-        for direction in ['A']:
-            for period in ['AM', 'PM']:
-                df_dir = directions[period][direction]
-                if not df_dir.empty:
-                    with st.container(border=True):
-                        display_statistics_in_columns(
-                            titles[f'{direction}_{period}'],
-                            df_dir
-                        )
-    
-    with col2:
-        for direction in ['B']:
-            for period in ['AM', 'PM']:
-                df_dir = directions[period][direction]
-                if not df_dir.empty:
-                    with st.container(border=True):
-                        display_statistics_in_columns(
-                            titles[f'{direction}_{period}'],
-                            df_dir
-                        )
 
 def display_statistics_in_columns(direction: str, df_dir: pd.DataFrame):
     """
     Display statistics for a given direction in a streamlit column
     """
     with st.container():
-        st.markdown(f"**Statiski untuk {direction}**")
+        st.markdown(f"**Statistik untuk {direction}**")
         col1, col2 = st.columns(2)
         
         with col1:
@@ -639,6 +354,10 @@ def display_statistics_in_columns(direction: str, df_dir: pd.DataFrame):
             st.metric("Waktu akhir", df_dir['timestamp'].max())
 
 def generate_two_route_maps(df:pd.DataFrame):
+    
+    LINE_WIDTH = 7
+    ZOOM = 9
+
     # Get unique direction
     direction_a_start = df[df['arah'] == 'arah A']['arah_awal'].iloc[0]
     direction_a_end = df[df['arah'] == 'arah A']['arah_akhir'].iloc[0]
@@ -658,7 +377,7 @@ def generate_two_route_maps(df:pd.DataFrame):
 
     # Define speed ranges
     speed_ranges = [
-        (0, 20, 'gray', '0-20 km/jam'),
+        (0, 20, '#2F2F2F', '0-20 km/jam'),
         (21, 40, 'red', '21-40 km/jam'),
         (41, 60, 'orange', '41-60 km/jam'),
         (61, float('inf'), 'blue', '61+ km/jam')
@@ -677,7 +396,7 @@ def generate_two_route_maps(df:pd.DataFrame):
                         lat=df_range['y'],
                         mode='markers',
                         marker=dict(
-                            size=4,
+                            size=LINE_WIDTH,
                             color=color,
                             opacity=0.8
                         ),
@@ -713,12 +432,12 @@ def generate_two_route_maps(df:pd.DataFrame):
         mapbox1=dict(
             style='carto-positron',
             center=center_a,
-            zoom=8
+            zoom=ZOOM
         ),
         mapbox2=dict(
             style='carto-positron',
             center=center_b,
-            zoom=8
+            zoom=ZOOM
         ),
         margin=dict(l=0, r=0, t=30, b=0),
         legend=dict(
@@ -753,6 +472,10 @@ def generate_two_route_maps(df:pd.DataFrame):
             display_statistics_in_columns(title_b, df_b)
 
 def generate_four_route_maps(df: pd.DataFrame):
+
+    LINE_WIDTH = 7
+    ZOOM = 10
+
     # Get unique directions and create titles
     directions = {
         'AM': {
@@ -790,7 +513,7 @@ def generate_four_route_maps(df: pd.DataFrame):
 
     # Define speed ranges
     speed_ranges = [
-        (0, 20, 'gray', '0-20 km/jam'),
+        (0, 20, '#2F2F2F', '0-20 km/jam'),
         (21, 40, 'red', '21-40 km/jam'),
         (41, 60, 'orange', '41-60 km/jam'),
         (61, float('inf'), 'blue', '61+ km/jam')
@@ -809,13 +532,13 @@ def generate_four_route_maps(df: pd.DataFrame):
                         lat=df_range['y'],
                         mode='markers',
                         marker=dict(
-                            size=4,
+                            size=LINE_WIDTH,
                             color=color,
                             opacity=0.8
                         ),
                         name=label,
                         hovertemplate=(
-                            'Keceptana: %{text} km/jam<br>'
+                            'Kecepatan: %{text} km/jam<br>'
                             'Waktu: %{customdata}<br>'
                             'Lat: %{lat}<br>'
                             'Lon: %{lon}'
@@ -860,22 +583,22 @@ def generate_four_route_maps(df: pd.DataFrame):
         mapbox1=dict(
             style='carto-positron',
             center=centers['A_AM'],
-            zoom=8
+            zoom=ZOOM
         ),
         mapbox2=dict(
             style='carto-positron',
             center=centers['B_AM'],
-            zoom=8
+            zoom=ZOOM
         ),
         mapbox3=dict(
             style='carto-positron',
             center=centers['A_PM'],
-            zoom=8
+            zoom=ZOOM
         ),
         mapbox4=dict(
             style='carto-positron',
             center=centers['B_PM'],
-            zoom=8
+            zoom=ZOOM
         ),
         margin=dict(l=0, r=0, t=30, b=0),
         legend=dict(
@@ -1469,7 +1192,7 @@ def generate_travel_journey_dashboard(df: pd.DataFrame, speed_df: pd.DataFrame, 
     # st.dataframe(selected_df, hide_index=True, use_container_width=True)
     # st.dataframe(selected_speed_df, hide_index=True, use_container_width=True)
     # st.write(step_dict)
-
+    
 
 def show_travel_journey():
     # Load and process data
