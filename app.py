@@ -98,7 +98,7 @@ def fetch_base_data():
     #     ;
     # """
     # df = read_database(engine=engine, query=query)
-    return pd.read_pickle("data/fetch_base_data.pkl")
+    return pd.read_pickle("data/fetch_base_data_tc.pkl")
 
 # @st.cache_data
 def fetch_stats_data():
@@ -136,9 +136,11 @@ def fetch_stats_data():
     #     ;
     # """
     # df = read_database(engine=engine, query=query)
-    return pd.read_pickle("data/fetch_stats_data.pkl")
+    return pd.read_pickle("data/fetch_stats_data_tc.pkl")
 
-def chart_stats(df_stats:pd.DataFrame, kode_lokasi:str, filter_sheet:str, fig_title:str):
+def chart_stats(df_stats:pd.DataFrame, df_base:pd.DataFrame, kode_lokasi:str, filter_sheet:str, fig_title:str):
+    df_base_filtered = df_base.loc[(df_base['kode_lokasi'] == kode_lokasi) & (df_base['sheet'].str.contains(filter_sheet))]
+    
     df_stats_filtered = df_stats.loc[(df_stats['kode_lokasi'] == kode_lokasi) & (df_stats['sheet'].str.contains(filter_sheet))]
     df_stats_filtered = df_stats_filtered.groupby('rentang_survei_', as_index=False).sum()
     df_stats_filtered = df_stats_filtered.sort_values(by='rank_rentang_survei').drop(columns=['start_rentang_survei', 'kode_lokasi', 'sheet', 'rank_rentang_survei'])
@@ -177,16 +179,16 @@ def chart_stats(df_stats:pd.DataFrame, kode_lokasi:str, filter_sheet:str, fig_ti
         'Truk Besar ≥ 5 Gandar'
     ]
     values = [
-        df_stats_filtered['gol_6'].sum(),
-        df_stats_filtered['gol_1_a'].sum(),
-        df_stats_filtered['gol_1_b'].sum(),
-        df_stats_filtered['gol_1_c'].sum(),
-        df_stats_filtered['gol_1_d'].sum(),
-        df_stats_filtered['gol_1_e'].sum(),
-        df_stats_filtered['gol_2'].sum(),
-        df_stats_filtered['gol_3'].sum(),
-        df_stats_filtered['gol_4'].sum(),
-        df_stats_filtered['gol_5'].sum(),
+        df_base_filtered['total_gol_6'].sum(),
+        df_base_filtered['total_gol_1_a'].sum(),
+        df_base_filtered['total_gol_1_b'].sum(),
+        df_base_filtered['total_gol_1_c'].sum(),
+        df_base_filtered['total_gol_1_d'].sum(),
+        df_base_filtered['total_gol_1_e'].sum(),
+        df_base_filtered['total_gol_2'].sum(),
+        df_base_filtered['total_gol_3'].sum(),
+        df_base_filtered['total_gol_4'].sum(),
+        df_base_filtered['total_gol_5'].sum(),
     ]
     
     fig_pie = go.Figure(
@@ -205,8 +207,8 @@ def chart_stats(df_stats:pd.DataFrame, kode_lokasi:str, filter_sheet:str, fig_ti
     )
 
     return fig_scatter, fig_pie, {
-        "total_tanpa_sepeda_motor": df_stats_filtered['total_tanpa_sepeda_motor'].sum(),
-        "total_dengan_sepeda_motor": df_stats_filtered['total_dengan_sepeda_motor'].sum()
+        "total_tanpa_sepeda_motor": df_base_filtered['total_tanpa_sepeda_motor_summary'].sum(),
+        "total_dengan_sepeda_motor": df_base_filtered['total_dengan_sepeda_motor_summary'].sum()
     }
     
 if "show_detail" not in st.session_state:
@@ -276,7 +278,12 @@ if tabs =='Traffic Counting':
             durasi = df_base_selected.loc[df_base_selected['kode_lokasi'] == last_object_clicked_tooltip, 'durasi'].iloc[0]
             arah_dari = df_base_selected.loc[df_base_selected['kode_lokasi'] == last_object_clicked_tooltip, 'arah_dari'].iloc[0]
             arah_menuju = df_base_selected.loc[df_base_selected['kode_lokasi'] == last_object_clicked_tooltip, 'arah_menuju'].iloc[0]
-            hari_tanggal = df_base_selected.loc[df_base_selected['kode_lokasi'] == last_object_clicked_tooltip, 'hari_tanggal'].iloc[0]
+            hari_tanggal_hk = df_base_selected.loc[(df_base_selected['kode_lokasi'] == last_object_clicked_tooltip) & (df_base_selected['hari_tanggal_hk'].notnull()), 'hari_tanggal_hk'].iloc[0]
+            hari_tanggal_hl = df_base_selected.loc[(df_base_selected['kode_lokasi'] == last_object_clicked_tooltip) & (df_base_selected['hari_tanggal_hl'].notnull()), 'hari_tanggal_hl'].iloc[0]
+            
+            cuaca_hk = df_base_selected.loc[(df_base_selected['kode_lokasi'] == last_object_clicked_tooltip) & (df_base_selected['cuaca_hk'].notnull()), 'cuaca_hk'].iloc[0]
+            cuaca_hl = df_base_selected.loc[(df_base_selected['kode_lokasi'] == last_object_clicked_tooltip) & (df_base_selected['cuaca_hl'].notnull()), 'cuaca_hl'].iloc[0]
+            
             nama_ruas_jalan = df_base_selected.loc[df_base_selected['kode_lokasi'] == last_object_clicked_tooltip, 'nama_ruas_jalan'].iloc[0]
             surveyor_rekam_hitung = df_base_selected.loc[df_base_selected['kode_lokasi'] == last_object_clicked_tooltip, 'surveyor_rekam_hitung'].iloc[0]
             jam_puncak_arah_1_hk = df_base_selected.loc[df_base_selected['kode_lokasi'] == last_object_clicked_tooltip, 'jam_puncak_arah_1_hk'].iloc[0]
@@ -292,19 +299,26 @@ if tabs =='Traffic Counting':
             
             st.write(f"**No./Kode Lokasi :** {df_base_selected.loc[df_base_selected['kode_lokasi'] == last_object_clicked_tooltip, 'kode_lokasi'].iloc[0]}")
             st.write(f"**Durasi :** {durasi}")
-            st.write(f"**Koordinat Lokasi :** {df_base_selected.loc[df_base_selected['kode_lokasi'] == last_object_clicked_tooltip, 'koordinat'].iloc[0]}")
-            st.write(f"**Hari Tanggal :** {hari_tanggal}")
-            st.write(f"**Cuaca :** {df_base_selected.loc[df_base_selected['kode_lokasi'] == last_object_clicked_tooltip, 'cuaca'].iloc[0]}")
+            # st.write(f"**Koordinat Lokasi :** {df_base_selected.loc[df_base_selected['kode_lokasi'] == last_object_clicked_tooltip, 'koordinat_lokasi_text'].iloc[0]}")
+            st.write(f"**Koordinat Lokasi :**")
+            st.markdown(df_base_selected.loc[df_base_selected['kode_lokasi'] == last_object_clicked_tooltip, 'koordinat_lokasi_text'].iloc[0].replace('\n', '  \n'), unsafe_allow_html=True)
+            st.write(f"**Hari Tanggal :**")
+            st.markdown(f'<p style="font-size: 14px;">Hari Kerja: {hari_tanggal_hk}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size: 14px;">Hari Libur: {hari_tanggal_hl}</p>', unsafe_allow_html=True)
+            
+            st.write(f"**Cuaca :**")
+            st.markdown(f'<p style="font-size: 14px;">Hari Kerja: {cuaca_hk}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size: 14px;">Hari Libur: {cuaca_hl}</p>', unsafe_allow_html=True)
             st.write(f"**Surveyor Rekam Hitung :**")
             st.write(surveyor_rekam_hitung)
             st.write(f"**Nama Ruas Jalan :**")
             st.write(nama_ruas_jalan)
             st.write("**Arah 1**")
-            st.write(f"**Arah dari :** {arah_dari}")
-            st.write(f"**Arah Menuju :** {arah_menuju}")
+            st.markdown(f'<p style="font-size: 14px;">Arah dari: {arah_dari}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size: 14px;">Arah menuju: {arah_menuju}</p>', unsafe_allow_html=True)
             st.write("**Arah 2**")
-            st.write(f"**Arah dari :** {arah_menuju}")
-            st.write(f"**Arah Menuju :** {arah_dari}")
+            st.markdown(f'<p style="font-size: 14px;">Arah dari: {arah_menuju}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size: 14px;">Arah menuju: {arah_dari}</p>', unsafe_allow_html=True)
 
     
     if last_object_clicked_tooltip:
@@ -312,7 +326,7 @@ if tabs =='Traffic Counting':
         st.write("---")
         c1, c2, c3 = st.columns([1,1,1])
         with c1.container(border=True):
-            fig_hk, fig_pie_hk, agg_data = chart_stats(df_stats=df_stats, kode_lokasi=last_object_clicked_tooltip, filter_sheet="HK", fig_title="Fluktuasi Volume Kendaraan - Total Dua Arah")
+            fig_hk, fig_pie_hk, agg_data = chart_stats(df_stats=df_stats, df_base=df_base, kode_lokasi=last_object_clicked_tooltip, filter_sheet="HK", fig_title="Fluktuasi Volume Kendaraan - Total Dua Arah")
             st.plotly_chart(fig_hk, use_container_width=True, key=f"{key}_fig_hk")
             st.plotly_chart(fig_pie_hk, use_container_width=True, key=f"{key}_fig_pie_hk")
             
@@ -321,12 +335,12 @@ if tabs =='Traffic Counting':
                 st.markdown(f'<p style="font-size: 15px;">- Tanpa motor: {agg_data.get("total_tanpa_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 15px;">- Dengan motor: {agg_data.get("total_dengan_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Nama ruas jalan: {nama_ruas_jalan}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal_hk}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Durasi survei: {durasi}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Catatan: {catatan_hk}</p>', unsafe_allow_html=True)
                 
         with c2.container(border=True):
-            fig_hk_1, fig_pie_hk_1, agg_data = chart_stats(df_stats=df_stats, kode_lokasi=last_object_clicked_tooltip, filter_sheet="HK_Arah-1", fig_title="Fluktuasi Volume Kendaraan - Satu Arah (Arah-1)")
+            fig_hk_1, fig_pie_hk_1, agg_data = chart_stats(df_stats=df_stats, df_base=df_base, kode_lokasi=last_object_clicked_tooltip, filter_sheet="HK_Arah-1", fig_title="Fluktuasi Volume Kendaraan - Satu Arah (Arah-1)")
             st.plotly_chart(fig_hk_1, use_container_width=True, key=f"{key}_fig_hk_1")
             st.plotly_chart(fig_pie_hk_1, use_container_width=True, key=f"{key}_fig_pie_hk_1")
             
@@ -335,7 +349,7 @@ if tabs =='Traffic Counting':
                 st.markdown(f'<p style="font-size: 15px;">- Tanpa motor: {agg_data.get("total_tanpa_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 15px;">- Dengan motor: {agg_data.get("total_dengan_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Nama ruas jalan: {nama_ruas_jalan}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal_hk}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Arah Dari: {arah_dari}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Arah Menuju: {arah_menuju}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_1_hk}</p>', unsafe_allow_html=True)
@@ -343,7 +357,7 @@ if tabs =='Traffic Counting':
                 
             
         with c3.container(border=True):
-            fig_hk_2, fig_pie_hk_2, agg_data = chart_stats(df_stats=df_stats, kode_lokasi=last_object_clicked_tooltip, filter_sheet="HK_Arah-2", fig_title="Fluktuasi Volume Kendaraan - Satu Arah (Arah-2)")
+            fig_hk_2, fig_pie_hk_2, agg_data = chart_stats(df_stats=df_stats, df_base=df_base, kode_lokasi=last_object_clicked_tooltip, filter_sheet="HK_Arah-2", fig_title="Fluktuasi Volume Kendaraan - Satu Arah (Arah-2)")
             st.plotly_chart(fig_hk_2, use_container_width=True, key=f"{key}_fig_hk_2")
             
             st.plotly_chart(fig_pie_hk_2, use_container_width=True, key=f"{key}_fig_pie_hk_2")
@@ -353,7 +367,7 @@ if tabs =='Traffic Counting':
                 st.markdown(f'<p style="font-size: 15px;">- Tanpa motor: {agg_data.get("total_tanpa_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 15px;">- Dengan motor: {agg_data.get("total_dengan_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Nama ruas jalan: {nama_ruas_jalan}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal_hk}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Arah Dari: {arah_menuju}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Arah Menuju: {arah_dari}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_2_hk}</p>', unsafe_allow_html=True)
@@ -364,7 +378,7 @@ if tabs =='Traffic Counting':
         st.write("---")
         c1, c2, c3 = st.columns([1,1,1])
         with c1.container(border=True):
-            fig_hl, fig_pie_hl, agg_data = chart_stats(df_stats=df_stats, kode_lokasi=last_object_clicked_tooltip, filter_sheet="HL", fig_title="Fluktuasi Volume Kendaraan - Total Dua Arah")
+            fig_hl, fig_pie_hl, agg_data = chart_stats(df_stats=df_stats, df_base=df_base, kode_lokasi=last_object_clicked_tooltip, filter_sheet="HL", fig_title="Fluktuasi Volume Kendaraan - Total Dua Arah")
             st.plotly_chart(fig_hl, use_container_width=True, key=f"{key}_fig_hl")
             st.plotly_chart(fig_pie_hl, use_container_width=True, key=f"{key}_fig_pie_hl")
             
@@ -373,12 +387,12 @@ if tabs =='Traffic Counting':
                 st.markdown(f'<p style="font-size: 15px;">- Tanpa motor: {agg_data.get("total_tanpa_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 15px;">- Dengan motor: {agg_data.get("total_dengan_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Nama ruas jalan: {nama_ruas_jalan}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal_hl}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Durasi survei: {durasi}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Catatan: {catatan_hl}</p>', unsafe_allow_html=True)
                 
         with c2.container(border=True):
-            fig_hl_1, fig_pie_hl_1, agg_data = chart_stats(df_stats=df_stats, kode_lokasi=last_object_clicked_tooltip, filter_sheet="HL_Arah-1", fig_title="Fluktuasi Volume Kendaraan - Satu Arah (Arah-1)")
+            fig_hl_1, fig_pie_hl_1, agg_data = chart_stats(df_stats=df_stats, df_base=df_base, kode_lokasi=last_object_clicked_tooltip, filter_sheet="HL_Arah-1", fig_title="Fluktuasi Volume Kendaraan - Satu Arah (Arah-1)")
             st.plotly_chart(fig_hl_1, use_container_width=True, key=f"{key}_fig_hl_1")
             st.plotly_chart(fig_pie_hl_1, use_container_width=True, key=f"{key}_fig_pie_hl_1")
             
@@ -387,14 +401,14 @@ if tabs =='Traffic Counting':
                 st.markdown(f'<p style="font-size: 15px;">- Tanpa motor: {agg_data.get("total_tanpa_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 15px;">- Dengan motor: {agg_data.get("total_dengan_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Nama ruas jalan: {nama_ruas_jalan}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal_hl}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Arah Dari: {arah_dari}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Arah Menuju: {arah_menuju}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_1_hl}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_1_hl}</p>', unsafe_allow_html=True)
                 
         with c3.container(border=True):
-            fig_hl_2, fig_pie_hl_2, agg_data = chart_stats(df_stats=df_stats, kode_lokasi=last_object_clicked_tooltip, filter_sheet="HL_Arah-2", fig_title="Fluktuasi Volume Kendaraan - Satu Arah (Arah-2)")
+            fig_hl_2, fig_pie_hl_2, agg_data = chart_stats(df_stats=df_stats, df_base=df_base, kode_lokasi=last_object_clicked_tooltip, filter_sheet="HL_Arah-2", fig_title="Fluktuasi Volume Kendaraan - Satu Arah (Arah-2)")
             st.plotly_chart(fig_hl_2, use_container_width=True, key=f"{key}_fig_hl_2")
             st.plotly_chart(fig_pie_hl_2, use_container_width=True, key=f"{key}_fig_pie_hl_2")
             
@@ -403,7 +417,7 @@ if tabs =='Traffic Counting':
                 st.markdown(f'<p style="font-size: 15px;">- Tanpa motor: {agg_data.get("total_tanpa_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 15px;">- Dengan motor: {agg_data.get("total_dengan_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Nama ruas jalan: {nama_ruas_jalan}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal_hl}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Arah Dari: {arah_menuju}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Arah Menuju: {arah_dari}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_2_hl}</p>', unsafe_allow_html=True)
