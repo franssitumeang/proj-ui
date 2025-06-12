@@ -31,7 +31,7 @@ def get_data_vehicle_type():
     #     ;
     # """
     # df = read_database(engine=engine, query=query)
-    return pd.read_pickle("data/origin_destination_vehicle_type.pkl")
+    return pd.read_pickle("data/origin_destination_vehicle_type_.pkl")
 
 @st.cache_data
 def get_data_origin_dest_agg():
@@ -192,7 +192,7 @@ def get_data_origin_dest_agg():
 
 df_vehicle_type = get_data_vehicle_type()
 df_origin_dest_agg = get_data_origin_dest_agg()
-vehicle_type = df_vehicle_type["jenis"].unique()
+vehicle_type = df_vehicle_type["_jenis"].unique()
 kode_titik = df_vehicle_type["kode_titik"].unique()
 
 def chart_vehicle_origin_destination(kode_titik):
@@ -202,7 +202,7 @@ def chart_vehicle_origin_destination(kode_titik):
     # df_origin_dest_map_line = df_origin_dest_agg_selected.loc[(df_origin_dest_agg_selected['asal_kab_kota'] != 'EKSTERNAL') & (df_origin_dest_agg_selected['tujuan_kab_kota'] != 'EKSTERNAL')]
     values_vehicle_type = []
     for _type in vehicle_type:
-        values_vehicle_type.append(int(df_vehicle_type_selected.loc[df_vehicle_type_selected['jenis'] == _type, 'count_vehicle'].iloc[0]) if _type in df_vehicle_type_selected["jenis"].values else 0)
+        values_vehicle_type.append(int(df_vehicle_type_selected.loc[df_vehicle_type_selected['_jenis'] == _type, 'count_vehicle'].iloc[0]) if _type in df_vehicle_type_selected["_jenis"].values else 0)
     
     origin = []
     destination = []
@@ -461,6 +461,17 @@ def chart_vehicle_origin_destination(kode_titik):
         
         
 def show():
-    kode_titik_select = st.selectbox("Filter Kode Titik", sorted(kode_titik), key=f"kode_titik_select")
+    display_text_select = {
+        "RSI1": "OD1",
+        "RSI2": "OD2 - RSI",
+        "RSI3": "OD3",
+        "RSI4": "OD4 - RSI",
+        "RSI5": "OD5 - RSI",
+        "RSI6": "OD6",
+        "RSI7": "OD7 - RSI",
+        "RSI8": "OD8 - RSI",
+        "RSI9": "OD9",
+    }
+    kode_titik_select = st.selectbox("Filter Kode Titik", sorted(kode_titik), key=f"kode_titik_select", format_func=lambda x: display_text_select[x])
     chart_vehicle_origin_destination(kode_titik_select)
 
