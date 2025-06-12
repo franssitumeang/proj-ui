@@ -310,8 +310,7 @@ def chart_vehicle_origin_destination(kode_titik):
             margin=dict(t=100, b=100, l=100, r=100),
             font=dict(size=9.5),
         )
-        if not (len(data_matrix_origin['Asal Perjalanan']) == 1 and 'Tempat Tidak Diketahui' in data_matrix_origin['Asal Perjalanan']):
-            st.plotly_chart(fig_matrix_origin)
+        st.plotly_chart(fig_matrix_origin)
         
     with col3:
         fig_matrix_dest = px.pie(
@@ -329,8 +328,7 @@ def chart_vehicle_origin_destination(kode_titik):
             margin=dict(t=100, b=100, l=100, r=100),
             font=dict(size=9.5),
         )
-        if not (len(data_matrix_dest['Tujuan Perjalanan']) == 1 and 'Tempat Tidak Diketahui' in data_matrix_dest['Tujuan Perjalanan']):
-            st.plotly_chart(fig_matrix_dest)
+        st.plotly_chart(fig_matrix_dest)
     
     with st.container(border=True):
         fig_matrix_origin_dest = px.imshow(pivot_matrix_origin_dest, text_auto=True, aspect="auto", color_continuous_scale="Blues")

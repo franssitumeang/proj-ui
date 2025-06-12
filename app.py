@@ -322,7 +322,7 @@ if tabs =='Traffic Counting':
 
     
     if last_object_clicked_tooltip:
-        st.markdown(f"<h1 style='text-align: center; color: black;'>Profil Hari Kerja - {last_object_clicked_tooltip} ({arah_dari} - {arah_menuju})</h1>", unsafe_allow_html=True)
+        st.markdown(f"<h1 style='text-align: center; color: black;'>Profil Hari Kerja - {last_object_clicked_tooltip}</h1>", unsafe_allow_html=True)
         st.write("---")
         c1, c2, c3 = st.columns([1,1,1])
         with c1.container(border=True):
@@ -353,7 +353,7 @@ if tabs =='Traffic Counting':
                 st.markdown(f'<p style="font-size: 16px;">Arah Dari: {arah_dari}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Arah Menuju: {arah_menuju}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_1_hk}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_1_hk}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_1_hk} smp/jam</p>', unsafe_allow_html=True)
                 
             
         with c3.container(border=True):
@@ -371,10 +371,10 @@ if tabs =='Traffic Counting':
                 st.markdown(f'<p style="font-size: 16px;">Arah Dari: {arah_menuju}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Arah Menuju: {arah_dari}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_2_hk}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_2_hk}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_2_hk} smp/jam</p>', unsafe_allow_html=True)
                 
         
-        st.markdown(f"<h1 style='text-align: center; color: black;'>Profil Hari Libur - {last_object_clicked_tooltip} ({arah_menuju} - {arah_dari})</h1>", unsafe_allow_html=True)
+        st.markdown(f"<h1 style='text-align: center; color: black;'>Profil Hari Libur - {last_object_clicked_tooltip}</h1>", unsafe_allow_html=True)
         st.write("---")
         c1, c2, c3 = st.columns([1,1,1])
         with c1.container(border=True):
@@ -405,7 +405,7 @@ if tabs =='Traffic Counting':
                 st.markdown(f'<p style="font-size: 16px;">Arah Dari: {arah_dari}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Arah Menuju: {arah_menuju}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_1_hl}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_1_hl}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_1_hl} smp/jam</p>', unsafe_allow_html=True)
                 
         with c3.container(border=True):
             fig_hl_2, fig_pie_hl_2, agg_data = chart_stats(df_stats=df_stats, df_base=df_base, kode_lokasi=last_object_clicked_tooltip, filter_sheet="HL_Arah-2", fig_title="Fluktuasi Volume Kendaraan - Satu Arah (Arah-2)")
@@ -421,7 +421,7 @@ if tabs =='Traffic Counting':
                 st.markdown(f'<p style="font-size: 16px;">Arah Dari: {arah_menuju}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Arah Menuju: {arah_dari}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_2_hl}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_2_hl}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_2_hl} smp/jam</p>', unsafe_allow_html=True)
 
 elif tabs =='Travel Journey':
     st.header("Survei Travel Journey")
