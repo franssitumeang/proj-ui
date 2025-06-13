@@ -11,7 +11,7 @@ def load_travel_journey_data():
     return df
 
 @st.cache_data
-def load_tarvel_journey_jarak_data():
+def load_travel_journey_jarak_data():
     df = pd.read_feather("data/survey_travel_journey_jarak.feather")
     return df
 
@@ -317,23 +317,55 @@ def create_step_data_for_sheet(df):
     
     return step_data
 
-def display_statistics_in_columns(direction: str, df_dir: pd.DataFrame):
+def convert_timestamp_column(df, timestamp_col='timestamp'):
     """
-    Display statistics for a given direction in a streamlit column
-    """
-    with st.container():
-        st.markdown(f"**Statistik untuk {direction}**")
-        col1, col2 = st.columns(2)
+    Convert mixed timestamp formats (decimal and time strings) to consistent time format
+    
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        DataFrame with timestamp column
+    timestamp_col : str
+        Name of timestamp column
         
-        with col1:
-            st.metric("Jumlah titik", len(df_dir))
-            st.metric("Kecepatan rata-rata", f"{df_dir['kmph'].mean():.1f} km/jam")
-            st.metric("Kecepatan maksimum", f"{df_dir['kmph'].max()} km/jam")
+    Returns:
+    --------
+    pandas.DataFrame
+        DataFrame with converted timestamps
+    """
+    
+    def convert_single_timestamp(timestamp_value):
+        """Convert a single timestamp value to time format"""
+        try:
+            # If it's already a string in time format (HH:MM:SS), return as is
+            if isinstance(timestamp_value, str) and ':' in str(timestamp_value):
+                return timestamp_value
             
-        with col2:
-            st.metric("Kecepatan minimum", f"{df_dir['kmph'].min()} km/jam")
-            st.metric("Waktu mulai", df_dir['timestamp'].min())
-            st.metric("Waktu akhir", df_dir['timestamp'].max())
+            # If it's a decimal (fractional day), convert to time
+            decimal_value = float(timestamp_value)
+            
+            # Convert decimal day to total seconds
+            total_seconds = decimal_value * 24 * 60 * 60
+            
+            # Convert to hours, minutes, seconds
+            hours = int(total_seconds // 3600)
+            minutes = int((total_seconds % 3600) // 60)
+            seconds = int(total_seconds % 60)
+            
+            # Format as HH:MM:SS
+            return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+            
+        except (ValueError, TypeError):
+            # If conversion fails, return original value
+            return timestamp_value
+    
+    # Create a copy to avoid modifying original
+    df_converted = df.copy()
+    
+    # Apply conversion to timestamp column
+    df_converted[timestamp_col] = df_converted[timestamp_col].apply(convert_single_timestamp)
+    
+    return df_converted
 
 def display_statistics_in_columns(direction: str, df_dir: pd.DataFrame):
     """
@@ -343,15 +375,90 @@ def display_statistics_in_columns(direction: str, df_dir: pd.DataFrame):
         st.markdown(f"**Statistik untuk {direction}**")
         col1, col2 = st.columns(2)
         
+        # Handle timestamp formatting with error handling
+        df_dir = convert_timestamp_column(df_dir)
+        try:
+            # First, check if timestamp is already in datetime format
+            if pd.api.types.is_datetime64_any_dtype(df_dir['timestamp']):
+                start_time = df_dir['timestamp'].min()
+                end_time = df_dir['timestamp'].max()
+            else:
+                # Try to convert to datetime
+                start_time = pd.to_datetime(df_dir['timestamp'].min())
+                end_time = pd.to_datetime(df_dir['timestamp'].max())
+            
+            start_time_formatted = start_time.strftime("%I:%M:%S %p")
+            end_time_formatted = end_time.strftime("%I:%M:%S %p")
+            
+            # Calculate duration in hours
+            duration = end_time - start_time
+            duration_hours = duration.total_seconds() / 3600
+            
+        except (ValueError, TypeError, pd.errors.ParserError) as e:
+            # If timestamp parsing fails, check if it's in decimal hours format
+            try:
+                start_decimal = float(df_dir['timestamp'].min())
+                end_decimal = float(df_dir['timestamp'].max())
+                
+                # Convert decimal hours to time format
+                def decimal_to_time(decimal_hours):
+                    hours = int(decimal_hours)
+                    minutes = int((decimal_hours - hours) * 60)
+                    seconds = int(((decimal_hours - hours) * 60 - minutes) * 60)
+                    
+                    # Create a datetime object for formatting
+                    import datetime
+                    time_obj = datetime.time(hours % 24, minutes, seconds)
+                    dt = datetime.datetime.combine(datetime.date.today(), time_obj)
+                    return dt.strftime("%I:%M:%S %p")
+                
+                start_time_formatted = decimal_to_time(start_decimal)
+                end_time_formatted = decimal_to_time(end_decimal)
+                duration_hours = end_decimal - start_decimal
+                
+            except (ValueError, TypeError):
+                # If all else fails, show raw values
+                start_time_formatted = str(df_dir['timestamp'].min())
+                end_time_formatted = str(df_dir['timestamp'].max())
+                duration_hours = 0.0
+        
         with col1:
-            st.metric("Jumlah titik", len(df_dir))
-            st.metric("Kecepatan rata-rata", f"{df_dir['kmph'].mean():.1f} km/jam")
-            st.metric("Kecepatan maksimum", f"{df_dir['kmph'].max()} km/jam")
+            st.metric(
+                label="Jumlah titik", 
+                value=f"{len(df_dir):,}",
+                help="Total jumlah titik pengukuran kecepatan yang berhasil direkam selama survei lapangan pada rute ini"
+            )
+            
+            st.metric(
+                label="Kecepatan maksimum", 
+                value=f"{df_dir['kmph'].max()} km/jam",
+                help="Kecepatan tertinggi yang terekam dari semua titik pengukuran selama survei di rute dan periode waktu ini"
+            )
+            
+            st.metric(
+                label="Kecepatan minimum", 
+                value=f"{df_dir['kmph'].min()} km/jam",
+                help="Kecepatan terendah yang terekam dari semua titik pengukuran selama survei di rute dan periode waktu ini"
+            )
             
         with col2:
-            st.metric("Kecepatan minimum", f"{df_dir['kmph'].min()} km/jam")
-            st.metric("Waktu mulai", df_dir['timestamp'].min())
-            st.metric("Waktu akhir", df_dir['timestamp'].max())
+            st.metric(
+                label="Waktu mulai", 
+                value=start_time_formatted,
+                help="Waktu dimulainya pengukuran survei pada rute dan arah perjalanan ini"
+            )
+            
+            st.metric(
+                label="Waktu akhir", 
+                value=end_time_formatted,
+                help="Waktu berakhirnya pengukuran survei pada rute dan arah perjalanan ini"
+            )
+            
+            st.metric(
+                label="Durasi survei",
+                value=f"{duration_hours:.1f} jam",
+                help="Total durasi waktu dalam jam yang dibutuhkan untuk menyelesaikan pengukuran survei pada rute dan arah ini"
+            )
 
 def generate_two_route_maps(df:pd.DataFrame):
     
@@ -453,10 +560,11 @@ def generate_two_route_maps(df:pd.DataFrame):
         legend_font_color='black',
         height=500,
         width=1600,
-        title='Peta Rute'
+        # title='Peta Rute'
     )
 
-    # st.subheader('Peta Rute')
+    st.subheader('Peta Rute')
+    st.info("💡 **Tips Navigasi:** Hover pada peta untuk melihat detail kecepatan. Gunakan toolbar di pojok kanan atas peta untuk zoom dan navigasi pada semua peta.")
     st.plotly_chart(fig, use_container_width=True)
 
     # Write some statistics for each direction
@@ -474,7 +582,7 @@ def generate_two_route_maps(df:pd.DataFrame):
 def generate_four_route_maps(df: pd.DataFrame):
 
     LINE_WIDTH = 7
-    ZOOM = 10
+    ZOOM = 11
 
     # Get unique directions and create titles
     directions = {
@@ -614,9 +722,10 @@ def generate_four_route_maps(df: pd.DataFrame):
         legend_font_color='black',
         height=800,  # Increased height to accommodate 2x2 grid
         width=1600,
-        title='Peta Rute'
+        # title='Peta Rute'
     )
-    # st.subheader('Peta Rute')
+    st.subheader('Peta Rute')
+    st.info("💡 **Tips Navigasi:** Hover pada peta untuk melihat detail kecepatan. Gunakan toolbar di pojok kanan atas peta untuk zoom dan navigasi pada semua peta.")
     st.plotly_chart(fig, use_container_width=True)
 
     # Display statistics in a 2x2 grid
@@ -656,13 +765,13 @@ def generate_linechart_two_directions(df: pd.DataFrame):
     direction_b_name = f"arah B ({df_b['arah_awal'].iloc[0]} → {df_b['arah_akhir'].iloc[0]})"
 
     # Create custom hover text
-    df_a['hover_text'] = df_a.apply(lambda row: f'Waktu: {row["waktu_menit"]:.1f} menit<br>Distance: {row["jarak_km"]:.2f} km', axis=1)
-    df_b['hover_text'] = df_b.apply(lambda row: f'Waktu: {row["waktu_menit"]:.1f} menit<br>Distance: {row["jarak_km"]:.2f} km', axis=1)
+    df_a['hover_text'] = df_a.apply(lambda row: f'Waktu: {row["waktu_menit"]:.1f} menit<br>Jarak: {row["jarak_km"]:.2f} km', axis=1)
+    df_b['hover_text'] = df_b.apply(lambda row: f'Waktu: {row["waktu_menit"]:.1f} menit<br>Jarak: {row["jarak_km"]:.2f} km', axis=1)
 
     # Create the figure
     fig = go.Figure()
 
-    # Add traces for Dietction A (using x-axis at the bottom)
+    # Add traces for Direction A (using x-axis at the bottom)
     fig.add_trace(
         go.Scatter(
             x=df_a['jarak_km'],
@@ -681,113 +790,150 @@ def generate_linechart_two_directions(df: pd.DataFrame):
             x=df_b['jarak_km'],
             y=df_b['waktu_menit'],
             name=direction_b_name,
-            line=dict(color='rgb(255, 127, 14)', width=2),  # Orange/red color
+            line=dict(color='rgb(255, 127, 14)', width=2),  # Orange color
             hovertext=df_b['hover_text'],
             hoverinfo='text',
             xaxis='x2'
         )
     )
 
-    # Update layout with two x-axes
-    max_distance = max(df_a['jarak_km'].max(), df_b['jarak_km'].max())
-    max_time = max(df_a['waktu_menit'].max(), df_b['waktu_menit'].max())
-
+    # Calculate maximum values for axes with small buffer
+    max_distance_a = df_a['jarak_km'].max() if not df_a.empty else 0
+    max_distance_b = df_b['jarak_km'].max() if not df_b.empty else 0
+    max_distance = max(max_distance_a, max_distance_b)
+    max_time = max(df_a['waktu_menit'].max() if not df_a.empty else 0, 
+                   df_b['waktu_menit'].max() if not df_b.empty else 0)
+    
+    # Create 5 evenly spaced x-axis tick points from 0 to max for both axes
+    x_ticks = [i * max_distance / 4 for i in range(5)]  # 0, 25%, 50%, 75%, 100%
+    x_ticks_reversed = [max_distance - tick for tick in x_ticks]
+    
     fig.update_layout(
         title_text="Grafik Waktu Perjalanan vs. Jarak",
         plot_bgcolor='white',
         showlegend=True,
-        height=500,
+        height=400,
         
-        # Configure the x-axes
+        # Configure the x-axes - Green on top, Orange below
         xaxis=dict(
-            title="Jarak (km) - Arah A",
+            # title="Jarak (km) - Arah A",
             titlefont=dict(color='rgb(44, 160, 44)'),
             tickfont=dict(color='rgb(44, 160, 44)'),
             side='bottom',
+            position=0.1,  # Above the orange axis
             range=[0, max_distance],
+            tickmode='array',
+            tickvals=x_ticks,
+            ticktext=[f"{x:.0f}" for x in x_ticks],
             ticksuffix=" km",
             showgrid=False
         ),
         xaxis2=dict(
-            title="Jarak (km) - Arah B",
+            # title="Jarak (km) - Arah B",
             titlefont=dict(color='rgb(255, 127, 14)'),
             tickfont=dict(color='rgb(255, 127, 14)'),
-            side='top',
+            side='bottom',
+            position=0,  # Bottom-most position
             range=[max_distance, 0],  # Reversed range
+            tickmode='array',
+            tickvals=x_ticks_reversed,
+            ticktext=[f"{x:.0f}" for x in x_ticks_reversed],
             ticksuffix=" km",
             overlaying='x',
             showgrid=False
         ),
         
-        # Configure the y-axis
+        # Configure the y-axis with more bottom margin for both axes
         yaxis=dict(
             title="Waktu (menit)",
             range=[0, max_time],
-            ticksuffix=" min"
+            ticksuffix=" menit",
+            dtick=60,
+            showgrid=True,
+            griddash='dot',
+            zeroline=True,
+            domain=[0.15, 1]  # Leave space at bottom for both x-axes
         ),
         
         # Hover label settings
         hoverlabel=dict(
-            # bgcolor="white",
             font_size=14,
             font_family="Arial"
         ),
-
         
-        # Legend settings
-        # legend=dict(
-        #     yanchor="top",
-        #     y=0.99,
-        #     xanchor="left",
-        #     x=0.01,
-        #     bgcolor="rgba(255, 255, 255, 0.8)"
-        # ),
+        # Legend settings - moved below chart
+        legend=dict(
+            yanchor="top",
+            y=-0.3,  # Move further down to accommodate both axes
+            xanchor="center",
+            x=0.5,
+            orientation="h"
+        ),
         
-        # Margins
-        margin=dict(t=100)  # Increased top margin for the second x-axis
-    )
-
-    fig.update_yaxes(
-        showgrid=True,
-        gridwidth=1,
-        gridcolor='lightgray',
-        zeroline=True,
-        zerolinewidth=1,
-        zerolinecolor='lightgray'
+        # Margins - increased bottom for both axes + legend
+        margin=dict(t=50, b=150)
     )
 
     # Display the plot in Streamlit
+    # st.plotly_chart(fig, use_container_width=True)
+
+    # Display the plot in Streamlit
     # st.header("Grafik Waktu Perjalanan vs. Jarak")
-    st.plotly_chart(fig, use_container_width=True)
+    with st.container(border=True):
+        st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown("**Statistik**")
-    
-    # Create two columns
-    col1, col2 = st.columns(2)
-    
-    # # Get direction names from the first row of each direction
-    # direction_a_name = f"Direction A ({df_a['arah_awal'].iloc[0]} to {df_a['arah_akhir'].iloc[0]})"
-    # direction_b_name = f"Direction B ({df_b['arah_awal'].iloc[0]} to {df_b['arah_akhir'].iloc[0]})"
-    
-    # Generate statistics for Direction A
-    with col1:
-        with st.container(border=True):
-            st.write(f"**{direction_a_name}**")
-            # st.write(f"Average Distance: {df_a['jarak_km'].mean():.2f} km")
-            st.write(f"Waktu Maksimum: {df_a['waktu_menit'].max():.1f} menit")
-            st.write(f"Jarak Total: {df_a['jarak_km'].max():.2f} km")
-            st.write(f"Rata-rata Kecepatan: {(df_a['jarak_km'].mean() / df_a['waktu_menit'].mean() * 60):.2f} km/h")
-            # st.write("---")
+        st.markdown("**Statistik**")
+        
+        # Create two columns
+        col1, col2 = st.columns(2)
+        
+        # Generate statistics for Direction A
+        with col1:
+            with st.container(border=True):
+                st.markdown(f"**{direction_a_name.title()}**")
+                
+                st.metric(
+                    label="Waktu Maksimum",
+                    value=f"{df_a['waktu_menit'].max():.1f} menit",
+                    help="Waktu perjalanan maksimum yang dibutuhkan untuk menempuh seluruh rute pada arah ini berdasarkan data survei lapangan"
+                )
+                
+                st.metric(
+                    label="Jarak Total",
+                    value=f"{df_a['jarak_km'].max():.2f} km",
+                    help="Total jarak keseluruhan rute dari titik awal hingga titik akhir berdasarkan hasil pengukuran survei"
+                )
+                
+                # avg_speed_a = (df_a['jarak_km'].mean() / df_a['waktu_menit'].mean() * 60)
+                # st.metric(
+                #     label="Rata-rata Kecepatan",
+                #     value=f"{avg_speed_a:.2f} km/jam",
+                #     help="Kecepatan rata-rata perjalanan dihitung dari analisis data survei (total jarak dibagi total waktu tempuh)"
+                # )
 
-    # Generate statistics for Direction B
-    with col2:
-        with st.container(border=True):
-            st.write(f"**{direction_b_name}**")
-            # st.write(f"Average Distance: {df_b['jarak_km'].mean():.2f} km")
-            st.write(f"Waktu Maksimum: {df_b['waktu_menit'].max():.1f} menit")
-            st.write(f"Jarak Total: {df_b['jarak_km'].max():.2f} km")
-            st.write(f"Rata-rata Kecepatan: {(df_b['jarak_km'].mean() / df_b['waktu_menit'].mean() * 60):.2f} km/jam")
-            # st.write("---")
+        # Generate statistics for Direction B
+        with col2:
+            with st.container(border=True):
+                st.markdown(f"**{direction_b_name.title()}**")
+                
+                st.metric(
+                    label="Waktu Maksimum",
+                    value=f"{df_b['waktu_menit'].max():.1f} menit",
+                    help="Waktu perjalanan maksimum yang dibutuhkan untuk menempuh seluruh rute pada arah ini berdasarkan data survei lapangan"
+                )
+                
+                st.metric(
+                    label="Jarak Total",
+                    value=f"{df_b['jarak_km'].max():.2f} km",
+                    help="Total jarak keseluruhan rute dari titik awal hingga titik akhir berdasarkan hasil pengukuran survei"
+                )
+                
+                # avg_speed_b = (df_b['jarak_km'].mean() / df_b['waktu_menit'].mean() * 60)
+                # st.metric(
+                #     label="Rata-rata Kecepatan",
+                #     value=f"{avg_speed_b:.2f} km/jam",
+                #     help="Kecepatan rata-rata perjalanan dihitung dari analisis data survei (total jarak dibagi total waktu tempuh)"
+                # )
 
 def generate_linechart_four_directions(df: pd.DataFrame):
     # Create separate dataframes for each direction
@@ -864,111 +1010,136 @@ def generate_linechart_four_directions(df: pd.DataFrame):
             )
         )
 
-    # Calculate maximum values for axes
+    # Calculate maximum values for axes with individual route consideration
     all_dfs = [df_a_am, df_a_pm, df_b_am, df_b_pm]
-    max_distance = max(df['jarak_km'].max() for df in all_dfs if not df.empty)
-    max_time = max(df['waktu_menit'].max() for df in all_dfs if not df.empty)
+    max_distance_a = max((df['jarak_km'].max() for df in [df_a_am, df_a_pm] if not df.empty), default=0)
+    max_distance_b = max((df['jarak_km'].max() for df in [df_b_am, df_b_pm] if not df.empty), default=0)
+    max_distance = max(max_distance_a, max_distance_b)
+    max_time = max((df['waktu_menit'].max() for df in all_dfs if not df.empty), default=0)
 
-    # Update layout
+    # Create 5 evenly spaced x-axis tick points from 0 to max for both axes
+    x_ticks = [i * max_distance / 4 for i in range(5)]  # 0, 25%, 50%, 75%, 100%
+    x_ticks_reversed = [max_distance - tick for tick in x_ticks]
+    
     fig.update_layout(
         title_text="Grafik Waktu Perjalanan vs. Jarak",
         plot_bgcolor='white',
         showlegend=True,
-        height=500,
+        height=400,
         
-        # Configure the x-axes
+        # Configure the x-axes - Green on top, Orange below
         xaxis=dict(
-            title="Jarak (km) - Arah A",
+            # title="Jarak (km) - Arah A",
             titlefont=dict(color='rgb(44, 160, 44)'),
             tickfont=dict(color='rgb(44, 160, 44)'),
             side='bottom',
+            position=0.1,  # Above the orange axis
             range=[0, max_distance],
+            tickmode='array',
+            tickvals=x_ticks,
+            ticktext=[f"{x:.0f}" for x in x_ticks],
             ticksuffix=" km",
             showgrid=False
         ),
         xaxis2=dict(
-            title="Jarak (km) - Arah B",
+            # title="Jarak (km) - Arah B",
             titlefont=dict(color='rgb(255, 127, 14)'),
             tickfont=dict(color='rgb(255, 127, 14)'),
-            side='top',
+            side='bottom',
+            position=0,  # Bottom-most position
             range=[max_distance, 0],  # Reversed range
+            tickmode='array',
+            tickvals=x_ticks_reversed,
+            ticktext=[f"{x:.0f}" for x in x_ticks_reversed],
             ticksuffix=" km",
             overlaying='x',
             showgrid=False
         ),
         
-        # Configure the y-axis
+        # Configure the y-axis with more bottom margin for both axes
         yaxis=dict(
             title="Waktu (menit)",
             range=[0, max_time],
-            ticksuffix=" min"
+            ticksuffix=" menit",
+            dtick=60,
+            showgrid=True,
+            griddash='dot',
+            zeroline=True,
+            domain=[0.15, 1]  # Leave space at bottom for both x-axes
         ),
         
         # Hover label settings
         hoverlabel=dict(
-            # bgcolor="white",
             font_size=14,
-            font_family="Arial",
-            # font_color='black'
+            font_family="Arial"
         ),
         
-        # Legend settings
-        # legend=dict(
-        #     yanchor="top",
-        #     y=0.99,
-        #     xanchor="left",
-        #     x=0.01,
-        #     bgcolor="rgba(255, 255, 255, 0.8)"
-        # ),
+        # Legend settings - moved below chart
+        legend=dict(
+            yanchor="top",
+            y=-0.3,  # Move further down to accommodate both axes
+            xanchor="center",
+            x=0.5,
+            orientation="h"
+        ),
         
-        # Margins
-        margin=dict(t=100)
-    )
-
-    fig.update_yaxes(
-        showgrid=True,
-        gridwidth=1,
-        gridcolor='lightgray',
-        zeroline=True,
-        zerolinewidth=1,
-        zerolinecolor='lightgray'
+        # Margins - increased bottom for both axes + legend
+        margin=dict(t=50, b=150)
     )
 
     # Display the plot in Streamlit
-    # st.header("Grafik Waktu Perjalanan vs. Jarak")
-    st.plotly_chart(fig, use_container_width=True)
+    # st.plotly_chart(fig, use_container_width=True)
 
-    # Automated summary statistics generation
-    st.markdown("**Statistik**")
-    
-    # Create a dynamic grid based on the number of non-empty dataframes
-    non_empty_dfs = [df for df in all_dfs if not df.empty]
-    num_cols = min(2, len(non_empty_dfs))  # Maximum 2 columns
-    num_rows = (len(non_empty_dfs) + num_cols - 1) // num_cols
-    
-    # Create columns for layout
-    cols = st.columns(num_cols)
-    
-    # Direction names mapping
-    direction_names = {
-        'arah A - AM': f"Arah A ({df_a_am['arah_awal'].iloc[0]} → {df_a_am['arah_akhir'].iloc[0]}) - Pagi",
-        'arah A - PM': f"Arah A ({df_a_pm['arah_awal'].iloc[0]} → {df_a_pm['arah_akhir'].iloc[0]}) - Sore",
-        'arah B - AM': f"Arah B ({df_b_am['arah_awal'].iloc[0]} → {df_b_am['arah_akhir'].iloc[0]}) - Pagi",
-        'arah B - PM': f"Arah B ({df_b_pm['arah_awal'].iloc[0]} → {df_b_pm['arah_akhir'].iloc[0]}) - Sore"
-    }
-    
-    # Generate statistics for each direction
-    for idx, direction_df in enumerate(non_empty_dfs):
-        col_idx = idx % num_cols
-        with cols[col_idx]:
-            with st.container(border=True):
-                direction = direction_df['arah'].iloc[0]
-                st.write(f"**{direction_names[direction]}**")
-                # st.write(f"Average Distance: {direction_df['jarak_km'].mean():.2f} km")
-                st.write(f"Waktu Maksimum: {direction_df['waktu_menit'].max():.1f} menit")
-                st.write(f"Jarak Total: {direction_df['jarak_km'].max():.2f} km")
-                st.write(f"Rata-rata Kecepatan: {(direction_df['jarak_km'].mean() / direction_df['waktu_menit'].mean() * 60):.2f} km/jam")
-                # st.write("---")
+    # Display the plot in Streamlit
+    # st.header("Grafik Waktu Perjalanan vs. Jarak")
+    with st.container(border=True):
+        st.plotly_chart(fig, use_container_width=True)
+
+        # Automated summary statistics generation
+        st.markdown("**Statistik**")
+        
+        # Create a dynamic grid based on the number of non-empty dataframes
+        non_empty_dfs = [df for df in all_dfs if not df.empty]
+        num_cols = min(2, len(non_empty_dfs))  # Maximum 2 columns
+        num_rows = (len(non_empty_dfs) + num_cols - 1) // num_cols
+        
+        # Create columns for layout
+        cols = st.columns(num_cols)
+        
+        # Direction names mapping
+        direction_names = {
+            'arah A - AM': f"Arah A ({df_a_am['arah_awal'].iloc[0]} → {df_a_am['arah_akhir'].iloc[0]}) - Pagi",
+            'arah A - PM': f"Arah A ({df_a_pm['arah_awal'].iloc[0]} → {df_a_pm['arah_akhir'].iloc[0]}) - Sore",
+            'arah B - AM': f"Arah B ({df_b_am['arah_awal'].iloc[0]} → {df_b_am['arah_akhir'].iloc[0]}) - Pagi",
+            'arah B - PM': f"Arah B ({df_b_pm['arah_awal'].iloc[0]} → {df_b_pm['arah_akhir'].iloc[0]}) - Sore"
+        }
+        
+        # Generate statistics for each direction
+        for idx, direction_df in enumerate(non_empty_dfs):
+            col_idx = idx % num_cols
+            with cols[col_idx]:
+                with st.container(border=True):
+                    direction = direction_df['arah'].iloc[0]
+                    st.markdown(f"**{direction_names[direction]}**")
+                    
+                    st.metric(
+                        label="Waktu Maksimum",
+                        value=f"{direction_df['waktu_menit'].max():.1f} menit",
+                        help="Waktu perjalanan maksimum yang dibutuhkan untuk menempuh seluruh rute pada arah dan periode waktu ini berdasarkan data survei lapangan"
+                    )
+                    
+                    st.metric(
+                        label="Jarak Total",
+                        value=f"{direction_df['jarak_km'].max():.2f} km",
+                        help="Total jarak keseluruhan rute dari titik awal hingga titik akhir berdasarkan hasil pengukuran survei"
+                    )
+                    
+                    # avg_speed = (direction_df['jarak_km'].mean() / direction_df['waktu_menit'].mean() * 60)
+                    # st.metric(
+                    #     label="Rata-rata Kecepatan",
+                    #     value=f"{avg_speed:.2f} km/jam",
+                    #     help="Kecepatan rata-rata perjalanan dihitung dari analisis data survei untuk periode waktu ini (total jarak dibagi total waktu tempuh)"
+                    # )
 
 def generate_stepchart_two_directions(step_data_dict, title="Grafik Kecepatan Rata-rata vs. Jarak"):
     """
@@ -991,8 +1162,8 @@ def generate_stepchart_two_directions(step_data_dict, title="Grafik Kecepatan Ra
     
     # Color mapping for directions
     color_map = {
-        'arah A': 'green',
-        'arah B': 'red'
+        'arah A': 'rgb(44, 160, 44)',
+        'arah B': 'rgb(255, 127, 14)'
     }
     
     # Get unique x values across all directions
@@ -1011,8 +1182,23 @@ def generate_stepchart_two_directions(step_data_dict, title="Grafik Kecepatan Ra
                 color=color_map.get(direction, 'blue'),  # Default to blue if direction not in map
                 width=2
             ),
-            name=direction
+            name=direction,
+            hovertemplate=(
+                '<b>%{fullData.name}</b><br>'
+                'Jarak: %{x:.1f} km<br>'
+                'Kecepatan: %{y:.1f} km/jam'
+                '<extra></extra>'
+            )
         ))
+
+    # Get maximum x value across all directions for proportional scaling
+    max_x_value = 0
+    for step_df in step_data_dict.values():
+        if not step_df.empty:
+            max_x_value = max(max_x_value, step_df['x'].max())
+    
+    # Create 5 evenly spaced x-axis tick points from 0 to max
+    x_ticks = [i * max_x_value / 4 for i in range(5)]  # 0, 25%, 50%, 75%, 100%
     
     # Update layout
     fig.update_layout(
@@ -1026,18 +1212,19 @@ def generate_stepchart_two_directions(step_data_dict, title="Grafik Kecepatan Ra
             gridcolor='lightgray',
             gridwidth=1,
             griddash='dot',
-            zeroline=False,
+            zeroline=True,
+            range=[0, max_x_value],  # Set x-axis range
             tickmode='array',  # Use custom tick values
-            tickvals=x_ticks,  # Set tick locations to unique x values
-            ticktext=[f"{x:.1f}" for x in x_ticks],  # Format tick labels
-            # tickangle=45  # Rotate labels for better readability
+            tickvals=x_ticks,  # Set tick locations to 5 proportional points
+            ticktext=[f"{x:.0f}" for x in x_ticks],  # Format tick labels as whole numbers
         ),
         yaxis=dict(
-            title=title,
+            title="Kecepatan rata-rata (km/jam)",
             gridcolor='lightgray',
             gridwidth=1,
             griddash='dot',
-            zeroline=False,
+            zeroline=True,
+            range=[0, 60],  # Fixed y-axis range from 0 to 50
             dtick=10  # Set major grid lines interval
         ),
         plot_bgcolor='white',
@@ -1079,17 +1266,20 @@ def generate_stepchart_four_directions(step_data_dict, title="Grafik Kecepatan R
     
     # Color and style mapping for directions
     style_map = {
-        'arah A - AM': {'color': 'green', 'dash': 'solid'},
-        'arah B - AM': {'color': 'red', 'dash': 'solid'},
-        'arah A - PM': {'color': 'green', 'dash': 'dash'},
-        'arah B - PM': {'color': 'red', 'dash': 'dash'}
+        'arah A - AM': {'color': 'rgb(44, 160, 44)', 'dash': 'solid'},
+        'arah B - AM': {'color': 'rgb(255, 127, 14)', 'dash': 'solid'},
+        'arah A - PM': {'color': 'rgb(44, 160, 44)', 'dash': 'dash'},
+        'arah B - PM': {'color': 'rgb(255, 127, 14)', 'dash': 'dash'}
     }
     
-    # Get unique x values across all directions
-    all_x_values = set()
+    # Get maximum x value across all directions for proportional scaling
+    max_x_value = 0
     for step_df in step_data_dict.values():
-        all_x_values.update(step_df['x'].unique())
-    x_ticks = sorted(list(all_x_values))
+        if not step_df.empty:
+            max_x_value = max(max_x_value, step_df['x'].max())
+    
+    # Create 5 evenly spaced x-axis tick points from 0 to max
+    x_ticks = [i * max_x_value / 4 for i in range(5)]  # 0, 25%, 50%, 75%, 100%
     
     # Add traces for each direction
     for direction, step_df in step_data_dict.items():
@@ -1103,7 +1293,14 @@ def generate_stepchart_four_directions(step_data_dict, title="Grafik Kecepatan R
                 width=2,
                 dash=style['dash']
             ),
-            name=direction
+            name=direction,
+            hovertemplate=(
+                '<b>%{fullData.name}</b><br>'
+                'Jarak: %{x:.1f} km<br>'
+                'Kecepatan: %{y:.1f} km/jam'
+                '<extra></extra>'
+            )
+            
         ))
     
     # Update layout
@@ -1118,19 +1315,20 @@ def generate_stepchart_four_directions(step_data_dict, title="Grafik Kecepatan R
             gridcolor='lightgray',
             gridwidth=1,
             griddash='dot',
-            zeroline=False,
+            zeroline=True,
+            range=[0, max_x_value],  # Set x-axis range
             tickmode='array',  # Use custom tick values
-            tickvals=x_ticks,  # Set tick locations to unique x values
-            ticktext=[f"{x:.1f}" for x in x_ticks],  # Format tick labels
-            # tickangle=45  # Rotate labels for better readability
+            tickvals=x_ticks,  # Set tick locations to 5 proportional points
+            ticktext=[f"{x:.0f}" for x in x_ticks],  # Format tick labels as whole numbers
         ),
         yaxis=dict(
-            title=title,
+            title="Kecepatan rata-rata (km/jam)",
             gridcolor='lightgray',
             gridwidth=1,
             griddash='dot',
-            zeroline=False,
-            dtick=10
+            zeroline=True,
+            range=[0, 60],  # Fixed y-axis range from 0 to 50
+            dtick=10  # Set major grid lines interval every 10
         ),
         plot_bgcolor='white',
         showlegend=True,
@@ -1198,7 +1396,7 @@ def show_travel_journey():
     # Load and process data
     travel_journey_df = load_travel_journey_data()
     raw_tracking_data_df = travel_journey_df.copy()
-    check_point_data_df = load_tarvel_journey_jarak_data()
+    check_point_data_df = load_travel_journey_jarak_data()
     gmap_df = clean_raw_tracking_data(raw_tracking_data_df)
     scaled_checkpoints_df = process_distance_sheets(check_point_data_df, gmap_df)
     speed_df = process_all_sheets(scaled_checkpoints_df, raw_tracking_data_df)
