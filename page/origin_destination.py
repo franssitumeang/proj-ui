@@ -4,6 +4,7 @@ import plotly.express as px
 # from utils.util import engine, read_database
 import pandas as pd
 import numpy as np
+from data.config import od5_data, od7_data
 
 
 @st.cache_data
@@ -270,8 +271,14 @@ def chart_vehicle_origin_destination(kode_titik):
         "Persentase": percentage_origin_dest_kab_kota
     }
     df_matrix_origin_dest = pd.DataFrame(data_matrix_origin_dest)
+    
+    if kode_titik == "RSI5":
+        df_matrix_origin_dest = pd.DataFrame(od5_data, columns=['Asal', 'Tujuan', 'Persentase'])
+    if kode_titik == "RSI7":
+        df_matrix_origin_dest = pd.DataFrame(od7_data, columns=['Persentase', 'Asal', 'Tujuan'])
+        
 
-    pivot_matrix_origin_dest = df_matrix_origin_dest.pivot(index="Tujuan", columns="Asal", values="Persentase").fillna(0)
+    pivot_matrix_origin_dest = df_matrix_origin_dest.pivot(index="Asal", columns="Tujuan", values="Persentase")
     
     col1, col2, col3 = st.columns([1, 1, 1])
     with col1:
@@ -331,7 +338,7 @@ def chart_vehicle_origin_destination(kode_titik):
         st.plotly_chart(fig_matrix_dest)
     
     with st.container(border=True):
-        fig_matrix_origin_dest = px.imshow(pivot_matrix_origin_dest, text_auto=True, aspect="auto", color_continuous_scale="Blues")
+        fig_matrix_origin_dest = px.imshow(pivot_matrix_origin_dest, text_auto=True, aspect="auto", color_continuous_scale="ylorrd")
         fig_matrix_origin_dest.update_traces(
             hovertemplate="Dari <b>%{y}</b> ke <b>%{x}</b>: <b>%{z}</b><extra></extra>"
         )
@@ -443,6 +450,19 @@ def chart_vehicle_origin_destination(kode_titik):
             mapbox_style="carto-positron",
             color_continuous_scale="Reds"
         )
+        
+        location_survey = {
+            "RSI1": "Pelabuhan Merak",
+            "RSI2": "Jl. Raya Cirebon-Brebes (Pantura)",
+            "RSI3": "Tol segmen Ciledug-Pejagan",
+            "RSI4": "Jl. Siliwangi",
+            "RSI5": "Jl. Raya Tuban-Semarang (Pantura)",
+            "RSI6": "Tol segemen Caruban-Nganjuk",
+            "RSI7": "Jl. Caruban-Saradan",
+            "RSI8": "Jl. Raya Tulungagung-Trenggalek",
+            "RSI9": "Pelabuhan Banyuwangi",
+        }
+        
 
         fig_dist_dest.update_layout(
             title={
@@ -453,6 +473,20 @@ def chart_vehicle_origin_destination(kode_titik):
                 "yanchor": "top",
             },
             title_font=dict(size=20, color="black", family="Arial"),
+            # Add custom annotation (bottom-left)
+            annotations=[
+                dict(
+                    x=0,
+                    y=0.15,
+                    xref='paper',
+                    yref='paper',
+                    text=f"<b>{df_vehicle_type_selected['count_vehicle'].sum()} Responden</b> <br> Lokasi Survei: {location_survey[kode_titik]}",
+                    showarrow=False,
+                    font=dict(size=14, color="black"),
+                    xanchor='left',
+                    yanchor='top'
+                )
+            ]
         )
         st.plotly_chart(fig_dist_dest)
 
