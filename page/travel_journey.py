@@ -317,6 +317,40 @@ def create_step_data_for_sheet(df):
     
     return step_data
 
+def extract_vertical_line_positions(step_data_dict):
+    """
+    Extract x-coordinates where step transitions occur to create vertical lines
+    Includes start (0) and end points
+    
+    Parameters:
+    -----------
+    step_data_dict : dict
+        Dictionary containing DataFrames with 'x' and 'y' columns for each direction
+        
+    Returns:
+    --------
+    list
+        List of x-coordinates where vertical lines should be placed (including 0 and max)
+    """
+    # Use the first direction's data (since all directions should have same transition points)
+    first_direction = list(step_data_dict.keys())[0]
+    step_df = step_data_dict[first_direction]
+    
+    # Find x coordinates that appear more than once (transition points)
+    x_counts = step_df['x'].value_counts()
+    transition_x_coords = x_counts[x_counts > 1].index.tolist()
+    
+    # Always include start point (0) and end point (max x value)
+    max_x = step_df['x'].max()
+    
+    # Create complete list: start + transitions + end
+    all_x_coords = [0] + [x for x in transition_x_coords if 0 < x < max_x] + [max_x]
+    
+    # Remove duplicates and sort
+    all_x_coords = sorted(list(set(all_x_coords)))
+    
+    return all_x_coords
+
 def convert_timestamp_column(df, timestamp_col='timestamp'):
     """
     Convert mixed timestamp formats (decimal and time strings) to consistent time format
@@ -754,13 +788,25 @@ def generate_four_route_maps(df: pd.DataFrame):
                             df_dir
                         )
 
-def generate_linechart_two_directions(df: pd.DataFrame):
+def generate_linechart_two_directions(df: pd.DataFrame, step_data_dict=None):
+    """
+    Generate line chart with optional numbered vertical lines from step data transitions
+    FIXED VERSION: Forces chart to show full step data range even if line data is shorter
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        DataFrame containing travel time data
+    step_data_dict : dict, optional
+        Dictionary containing step data for extracting vertical line positions.
+        Will add numbered vertical lines at 0 km, transition points, and end point.
+        Chart range will be forced to include all step data points.
+    """
     # Create separate dataframes for each direction
     df_a = df[df['arah']== 'arah A'].copy()
     df_b = df[df['arah']== 'arah B'].copy()
 
     # Get direction names from the first row of each dataframe
-    # Since all rows in each direction should have the same arah_awal/arah_akhir
     direction_a_name = f"arah A ({df_a['arah_awal'].iloc[0]} → {df_a['arah_akhir'].iloc[0]})"
     direction_b_name = f"arah B ({df_b['arah_awal'].iloc[0]} → {df_b['arah_akhir'].iloc[0]})"
 
@@ -797,12 +843,59 @@ def generate_linechart_two_directions(df: pd.DataFrame):
         )
     )
 
-    # Calculate maximum values for axes with small buffer
+    # Calculate maximum values for axes
     max_distance_a = df_a['jarak_km'].max() if not df_a.empty else 0
     max_distance_b = df_b['jarak_km'].max() if not df_b.empty else 0
-    max_distance = max(max_distance_a, max_distance_b)
+    max_distance_line_data = max(max_distance_a, max_distance_b)
+    
+    # FIXED: Calculate maximum distance from step data and use the larger value
+    max_distance_step_data = 0
+    if step_data_dict is not None:
+        for step_df in step_data_dict.values():
+            if not step_df.empty:
+                max_distance_step_data = max(max_distance_step_data, step_df['x'].max())
+    
+    # Use the maximum of line data and step data to ensure full range is shown
+    max_distance = max(max_distance_line_data, max_distance_step_data)
+    
     max_time = max(df_a['waktu_menit'].max() if not df_a.empty else 0, 
                    df_b['waktu_menit'].max() if not df_b.empty else 0)
+    
+    # Add vertical lines if step_data_dict is provided
+    if step_data_dict is not None:
+        vertical_line_positions = extract_vertical_line_positions(step_data_dict)
+        
+        for i, x_pos in enumerate(vertical_line_positions, 1):
+            # FIXED: Now includes all vertical lines since we expanded the chart range
+            if 0 <= x_pos <= max_distance:
+                # Add vertical line
+                fig.add_vline(
+                    x=x_pos,
+                    line=dict(
+                        color='blue',
+                        width=1,
+                        dash='solid'
+                    ),
+                    opacity=0.7
+                )
+                
+                # Add number label at the top of the line
+                fig.add_annotation(
+                    x=x_pos,
+                    y=max_time,  # Position at the top of the chart
+                    text=str(i),
+                    showarrow=False,
+                    font=dict(
+                        color='blue',
+                        size=12,
+                        family='Arial Black'
+                    ),
+                    bgcolor='white',
+                    bordercolor='blue',
+                    borderwidth=1,
+                    xanchor='center',
+                    yanchor='bottom'
+                )
     
     # Create 5 evenly spaced x-axis tick points from 0 to max for both axes
     x_ticks = [i * max_distance / 4 for i in range(5)]  # 0, 25%, 50%, 75%, 100%
@@ -816,12 +909,11 @@ def generate_linechart_two_directions(df: pd.DataFrame):
         
         # Configure the x-axes - Green on top, Orange below
         xaxis=dict(
-            # title="Jarak (km) - Arah A",
             titlefont=dict(color='rgb(44, 160, 44)'),
             tickfont=dict(color='rgb(44, 160, 44)'),
             side='bottom',
             position=0.1,  # Above the orange axis
-            range=[0, max_distance],
+            range=[0, max_distance],  # FIXED: Now uses the extended range
             tickmode='array',
             tickvals=x_ticks,
             ticktext=[f"{x:.0f}" for x in x_ticks],
@@ -829,12 +921,11 @@ def generate_linechart_two_directions(df: pd.DataFrame):
             showgrid=False
         ),
         xaxis2=dict(
-            # title="Jarak (km) - Arah B",
             titlefont=dict(color='rgb(255, 127, 14)'),
             tickfont=dict(color='rgb(255, 127, 14)'),
             side='bottom',
             position=0,  # Bottom-most position
-            range=[max_distance, 0],  # Reversed range
+            range=[max_distance, 0],  # FIXED: Now uses the extended range (reversed)
             tickmode='array',
             tickvals=x_ticks_reversed,
             ticktext=[f"{x:.0f}" for x in x_ticks_reversed],
@@ -875,67 +966,63 @@ def generate_linechart_two_directions(df: pd.DataFrame):
     )
 
     # Display the plot in Streamlit
-    # st.plotly_chart(fig, use_container_width=True)
-
-    # Display the plot in Streamlit
-    # st.header("Grafik Waktu Perjalanan vs. Jarak")
     with st.container(border=True):
         st.plotly_chart(fig, use_container_width=True)
 
-        st.markdown("**Statistik**")
+        with st.expander("**Statistik**"):
+        # st.markdown("**Statistik**")
         
-        # Create two columns
-        col1, col2 = st.columns(2)
-        
-        # Generate statistics for Direction A
-        with col1:
-            with st.container(border=True):
-                st.markdown(f"**{direction_a_name.title()}**")
-                
-                st.metric(
-                    label="Waktu Maksimum",
-                    value=f"{df_a['waktu_menit'].max():.1f} menit",
-                    help="Waktu perjalanan maksimum yang dibutuhkan untuk menempuh seluruh rute pada arah ini berdasarkan data survei lapangan"
-                )
-                
-                st.metric(
-                    label="Jarak Total",
-                    value=f"{df_a['jarak_km'].max():.2f} km",
-                    help="Total jarak keseluruhan rute dari titik awal hingga titik akhir berdasarkan hasil pengukuran survei"
-                )
-                
-                # avg_speed_a = (df_a['jarak_km'].mean() / df_a['waktu_menit'].mean() * 60)
-                # st.metric(
-                #     label="Rata-rata Kecepatan",
-                #     value=f"{avg_speed_a:.2f} km/jam",
-                #     help="Kecepatan rata-rata perjalanan dihitung dari analisis data survei (total jarak dibagi total waktu tempuh)"
-                # )
+            # Create two columns
+            col1, col2 = st.columns(2)
+            
+            # Generate statistics for Direction A
+            with col1:
+                with st.container(border=True):
+                    st.markdown(f"**{direction_a_name.title()}**")
+                    
+                    st.metric(
+                        label="Waktu Maksimum",
+                        value=f"{df_a['waktu_menit'].max():.1f} menit",
+                        help="Waktu perjalanan maksimum yang dibutuhkan untuk menempuh seluruh rute pada arah ini berdasarkan data survei lapangan"
+                    )
+                    
+                    st.metric(
+                        label="Jarak Total",
+                        value=f"{df_a['jarak_km'].max():.2f} km",
+                        help="Total jarak keseluruhan rute dari titik awal hingga titik akhir berdasarkan hasil pengukuran survei"
+                    )
 
-        # Generate statistics for Direction B
-        with col2:
-            with st.container(border=True):
-                st.markdown(f"**{direction_b_name.title()}**")
-                
-                st.metric(
-                    label="Waktu Maksimum",
-                    value=f"{df_b['waktu_menit'].max():.1f} menit",
-                    help="Waktu perjalanan maksimum yang dibutuhkan untuk menempuh seluruh rute pada arah ini berdasarkan data survei lapangan"
-                )
-                
-                st.metric(
-                    label="Jarak Total",
-                    value=f"{df_b['jarak_km'].max():.2f} km",
-                    help="Total jarak keseluruhan rute dari titik awal hingga titik akhir berdasarkan hasil pengukuran survei"
-                )
-                
-                # avg_speed_b = (df_b['jarak_km'].mean() / df_b['waktu_menit'].mean() * 60)
-                # st.metric(
-                #     label="Rata-rata Kecepatan",
-                #     value=f"{avg_speed_b:.2f} km/jam",
-                #     help="Kecepatan rata-rata perjalanan dihitung dari analisis data survei (total jarak dibagi total waktu tempuh)"
-                # )
+            # Generate statistics for Direction B
+            with col2:
+                with st.container(border=True):
+                    st.markdown(f"**{direction_b_name.title()}**")
+                    
+                    st.metric(
+                        label="Waktu Maksimum",
+                        value=f"{df_b['waktu_menit'].max():.1f} menit",
+                        help="Waktu perjalanan maksimum yang dibutuhkan untuk menempuh seluruh rute pada arah ini berdasarkan data survei lapangan"
+                    )
+                    
+                    st.metric(
+                        label="Jarak Total",
+                        value=f"{df_b['jarak_km'].max():.2f} km",
+                        help="Total jarak keseluruhan rute dari titik awal hingga titik akhir berdasarkan hasil pengukuran survei"
+                    )
 
-def generate_linechart_four_directions(df: pd.DataFrame):
+def generate_linechart_four_directions(df: pd.DataFrame, step_data_dict=None):
+    """
+    Generate line chart for four directions with optional numbered vertical lines from step data transitions
+    FIXED VERSION: Forces chart to show full step data range even if line data is shorter
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        DataFrame containing travel time data for four directions
+    step_data_dict : dict, optional
+        Dictionary containing step data for extracting vertical line positions.
+        Will add numbered vertical lines at 0 km, transition points, and end point.
+        Chart range will be forced to include all step data points.
+    """
     # Create separate dataframes for each direction
     df_a_am = df[df['arah'] == 'arah A - AM'].copy()
     df_a_pm = df[df['arah'] == 'arah A - PM'].copy()
@@ -943,7 +1030,6 @@ def generate_linechart_four_directions(df: pd.DataFrame):
     df_b_pm = df[df['arah'] == 'arah B - PM'].copy()
 
     # Get direction names from the first row of each dataframe
-    # Get direction name from the dataframe
     def get_direction_name(direction_df):
         if len(direction_df) > 0:
             arah_full = direction_df['arah'].iloc[0]  # Gets full direction string (e.g., 'arah A - AM')
@@ -1014,8 +1100,55 @@ def generate_linechart_four_directions(df: pd.DataFrame):
     all_dfs = [df_a_am, df_a_pm, df_b_am, df_b_pm]
     max_distance_a = max((df['jarak_km'].max() for df in [df_a_am, df_a_pm] if not df.empty), default=0)
     max_distance_b = max((df['jarak_km'].max() for df in [df_b_am, df_b_pm] if not df.empty), default=0)
-    max_distance = max(max_distance_a, max_distance_b)
+    max_distance_line_data = max(max_distance_a, max_distance_b)
+    
+    # FIXED: Calculate maximum distance from step data and use the larger value
+    max_distance_step_data = 0
+    if step_data_dict is not None:
+        for step_df in step_data_dict.values():
+            if not step_df.empty:
+                max_distance_step_data = max(max_distance_step_data, step_df['x'].max())
+    
+    # Use the maximum of line data and step data to ensure full range is shown
+    max_distance = max(max_distance_line_data, max_distance_step_data)
+    
     max_time = max((df['waktu_menit'].max() for df in all_dfs if not df.empty), default=0)
+
+    # Add vertical lines if step_data_dict is provided
+    if step_data_dict is not None:
+        vertical_line_positions = extract_vertical_line_positions(step_data_dict)
+        
+        for i, x_pos in enumerate(vertical_line_positions, 1):
+            # FIXED: Now includes all vertical lines since we expanded the chart range
+            if 0 <= x_pos <= max_distance:
+                # Add vertical line
+                fig.add_vline(
+                    x=x_pos,
+                    line=dict(
+                        color='blue',
+                        width=1,
+                        dash='solid'
+                    ),
+                    opacity=0.7
+                )
+                
+                # Add number label at the top of the line
+                fig.add_annotation(
+                    x=x_pos,
+                    y=max_time,  # Position at the top of the chart
+                    text=str(i),
+                    showarrow=False,
+                    font=dict(
+                        color='blue',
+                        size=12,
+                        family='Arial Black'
+                    ),
+                    bgcolor='white',
+                    bordercolor='blue',
+                    borderwidth=1,
+                    xanchor='center',
+                    yanchor='bottom'
+                )
 
     # Create 5 evenly spaced x-axis tick points from 0 to max for both axes
     x_ticks = [i * max_distance / 4 for i in range(5)]  # 0, 25%, 50%, 75%, 100%
@@ -1029,12 +1162,11 @@ def generate_linechart_four_directions(df: pd.DataFrame):
         
         # Configure the x-axes - Green on top, Orange below
         xaxis=dict(
-            # title="Jarak (km) - Arah A",
             titlefont=dict(color='rgb(44, 160, 44)'),
             tickfont=dict(color='rgb(44, 160, 44)'),
             side='bottom',
             position=0.1,  # Above the orange axis
-            range=[0, max_distance],
+            range=[0, max_distance],  # FIXED: Now uses the extended range
             tickmode='array',
             tickvals=x_ticks,
             ticktext=[f"{x:.0f}" for x in x_ticks],
@@ -1042,12 +1174,11 @@ def generate_linechart_four_directions(df: pd.DataFrame):
             showgrid=False
         ),
         xaxis2=dict(
-            # title="Jarak (km) - Arah B",
             titlefont=dict(color='rgb(255, 127, 14)'),
             tickfont=dict(color='rgb(255, 127, 14)'),
             side='bottom',
             position=0,  # Bottom-most position
-            range=[max_distance, 0],  # Reversed range
+            range=[max_distance, 0],  # FIXED: Now uses the extended range (reversed)
             tickmode='array',
             tickvals=x_ticks_reversed,
             ticktext=[f"{x:.0f}" for x in x_ticks_reversed],
@@ -1088,58 +1219,46 @@ def generate_linechart_four_directions(df: pd.DataFrame):
     )
 
     # Display the plot in Streamlit
-    # st.plotly_chart(fig, use_container_width=True)
-
-    # Display the plot in Streamlit
-    # st.header("Grafik Waktu Perjalanan vs. Jarak")
     with st.container(border=True):
         st.plotly_chart(fig, use_container_width=True)
 
-        # Automated summary statistics generation
-        st.markdown("**Statistik**")
+        with st.expander("**Statistik**"):
         
-        # Create a dynamic grid based on the number of non-empty dataframes
-        non_empty_dfs = [df for df in all_dfs if not df.empty]
-        num_cols = min(2, len(non_empty_dfs))  # Maximum 2 columns
-        num_rows = (len(non_empty_dfs) + num_cols - 1) // num_cols
-        
-        # Create columns for layout
-        cols = st.columns(num_cols)
-        
-        # Direction names mapping
-        direction_names = {
-            'arah A - AM': f"Arah A ({df_a_am['arah_awal'].iloc[0]} → {df_a_am['arah_akhir'].iloc[0]}) - Pagi",
-            'arah A - PM': f"Arah A ({df_a_pm['arah_awal'].iloc[0]} → {df_a_pm['arah_akhir'].iloc[0]}) - Sore",
-            'arah B - AM': f"Arah B ({df_b_am['arah_awal'].iloc[0]} → {df_b_am['arah_akhir'].iloc[0]}) - Pagi",
-            'arah B - PM': f"Arah B ({df_b_pm['arah_awal'].iloc[0]} → {df_b_pm['arah_akhir'].iloc[0]}) - Sore"
-        }
-        
-        # Generate statistics for each direction
-        for idx, direction_df in enumerate(non_empty_dfs):
-            col_idx = idx % num_cols
-            with cols[col_idx]:
-                with st.container(border=True):
-                    direction = direction_df['arah'].iloc[0]
-                    st.markdown(f"**{direction_names[direction]}**")
-                    
-                    st.metric(
-                        label="Waktu Maksimum",
-                        value=f"{direction_df['waktu_menit'].max():.1f} menit",
-                        help="Waktu perjalanan maksimum yang dibutuhkan untuk menempuh seluruh rute pada arah dan periode waktu ini berdasarkan data survei lapangan"
-                    )
-                    
-                    st.metric(
-                        label="Jarak Total",
-                        value=f"{direction_df['jarak_km'].max():.2f} km",
-                        help="Total jarak keseluruhan rute dari titik awal hingga titik akhir berdasarkan hasil pengukuran survei"
-                    )
-                    
-                    # avg_speed = (direction_df['jarak_km'].mean() / direction_df['waktu_menit'].mean() * 60)
-                    # st.metric(
-                    #     label="Rata-rata Kecepatan",
-                    #     value=f"{avg_speed:.2f} km/jam",
-                    #     help="Kecepatan rata-rata perjalanan dihitung dari analisis data survei untuk periode waktu ini (total jarak dibagi total waktu tempuh)"
-                    # )
+            # Create a dynamic grid based on the number of non-empty dataframes
+            non_empty_dfs = [df for df in all_dfs if not df.empty]
+            num_cols = min(2, len(non_empty_dfs))  # Maximum 2 columns
+            num_rows = (len(non_empty_dfs) + num_cols - 1) // num_cols
+            
+            # Create columns for layout
+            cols = st.columns(num_cols)
+            
+            # Direction names mapping
+            direction_names = {
+                'arah A - AM': f"Arah A ({df_a_am['arah_awal'].iloc[0]} → {df_a_am['arah_akhir'].iloc[0]}) - Pagi",
+                'arah A - PM': f"Arah A ({df_a_pm['arah_awal'].iloc[0]} → {df_a_pm['arah_akhir'].iloc[0]}) - Sore",
+                'arah B - AM': f"Arah B ({df_b_am['arah_awal'].iloc[0]} → {df_b_am['arah_akhir'].iloc[0]}) - Pagi",
+                'arah B - PM': f"Arah B ({df_b_pm['arah_awal'].iloc[0]} → {df_b_pm['arah_akhir'].iloc[0]}) - Sore"
+            }
+            
+            # Generate statistics for each direction
+            for idx, direction_df in enumerate(non_empty_dfs):
+                col_idx = idx % num_cols
+                with cols[col_idx]:
+                    with st.container(border=True):
+                        direction = direction_df['arah'].iloc[0]
+                        st.markdown(f"**{direction_names[direction]}**")
+                        
+                        st.metric(
+                            label="Waktu Maksimum",
+                            value=f"{direction_df['waktu_menit'].max():.1f} menit",
+                            help="Waktu perjalanan maksimum yang dibutuhkan untuk menempuh seluruh rute pada arah dan periode waktu ini berdasarkan data survei lapangan"
+                        )
+                        
+                        st.metric(
+                            label="Jarak Total",
+                            value=f"{direction_df['jarak_km'].max():.2f} km",
+                            help="Total jarak keseluruhan rute dari titik awal hingga titik akhir berdasarkan hasil pengukuran survei"
+                        )
 
 def generate_stepchart_two_directions(step_data_dict, title="Grafik Kecepatan Rata-rata vs. Jarak"):
     """
@@ -1373,13 +1492,13 @@ def generate_travel_journey_dashboard(df: pd.DataFrame, speed_df: pd.DataFrame, 
         pass
         generate_two_route_maps(selected_df)
         st.write("---")
-        generate_linechart_two_directions(selected_df)
+        generate_linechart_two_directions(selected_df, step_data_dict=step_dict)
         st.write("---")
         generate_stepchart_two_directions(step_dict)
     else:  # route_type == 'four'
         generate_four_route_maps(selected_df)
         st.write("---")
-        generate_linechart_four_directions(selected_df)
+        generate_linechart_four_directions(selected_df, step_data_dict=step_dict)
         st.write("---")
         generate_stepchart_four_directions(step_dict)
         pass
