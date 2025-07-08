@@ -138,6 +138,104 @@ def fetch_stats_data():
     # df = read_database(engine=engine, query=query)
     return pd.read_pickle("data/fetch_stats_data_tc.pkl")
 
+def create_pie_chart(_data, title_suffix="", show_inside_text=True):
+
+    width, height = 350, 300
+    # For small charts, only show percentages for segments > 5%
+    textinfo = 'percent'
+    textfont_size = 9
+    textposition = 'inside'
+    legend_config = dict(
+        orientation="h",
+        yanchor="top",
+        y=-0.05,
+        xanchor="center",
+        x=0.5,
+        font=dict(size=8)
+    )
+    margin_config = dict(t=50, b=120, l=10, r=10)
+    height = 550  # Add space for bottom legend
+
+    # Create labels with percentages for legend
+    labels_with_percent = [f"{label} ({(pct)}%)" for label, pct in zip(_data['vehicle_type'], _data['percentage'])]
+    
+    text_template = [f"{pct}%" for pct in _data['percentage']]
+    # Custom colors matching your theme
+    custom_colors = [
+        "#6055FC",  # Teal (main color)
+        '#FFE66D',  # Yellow  
+        '#FF6B6B',  # Red/Pink
+        '#FFB4A2',  # Light pink
+        '#95E1D3',  # Light teal
+        '#F38BA8',  # Pink
+        '#A8DADC',  # Light blue
+        "#C09DDF",  # Light purple
+        '#B8860B',  # Dark golden
+        "#D103D1"   # Plum
+    ]
+    
+    fig = go.Figure(data=[go.Pie(
+        labels=labels_with_percent,  # Use labels with percentages
+        values=_data['percentage'],
+        
+        # Text configuration with smart positioning
+        # textinfo=textinfo,
+        textposition=textposition,
+        texttemplate=text_template,
+        textfont=dict(
+            size=textfont_size + 1,  # Slightly larger font for better visibility
+            color='white',  # White text for better contrast on colored slices
+            family='Arial Black, Arial, sans-serif'  # Use Arial Black for bolder appearance
+        ),
+        
+        
+        marker=dict(
+            # colors=custom_colors,
+            line=dict(color='#FFFFFF', width=2)
+        ),
+        
+        # Enhanced hover information (show original labels)
+        customdata=_data['vehicle_type'],  # Original labels for hover
+        
+        hovertemplate='<b>%{customdata}</b><br>' +
+                     'Percentage: %{percent}<br>' +
+                     '<extra></extra>',
+        
+        # Pull small slices for better visibility
+        pull=[0.02 if val < 1 else 0 for val in _data['percentage']],
+        
+        # Improved text positioning for inside text
+        insidetextorientation='horizontal'
+    )])
+    
+    fig.update_layout(
+        title={
+            'text': f"Komposisi Jenis Kendaraan{title_suffix}",
+            'x': 0.5,
+            'xanchor': 'center',
+            'font': {'size': 14, 'color': '#2F2F2F'}
+        },
+        
+        # Legend configuration
+        showlegend=True,
+        legend=legend_config,
+        
+        # Size and margins
+        width=width,
+        height=height,
+        margin=margin_config,
+        
+        # Background and font theme
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(
+            family='Arial, sans-serif',
+            color='#2F2F2F'
+        )
+    )
+    
+    return fig
+
 def chart_stats(df_stats:pd.DataFrame, df_base:pd.DataFrame, kode_lokasi:str, filter_sheet:str, fig_title:str):
     df_base_filtered = df_base.loc[(df_base['kode_lokasi'] == kode_lokasi) & (df_base['sheet'].str.contains(filter_sheet))]
     
@@ -190,21 +288,28 @@ def chart_stats(df_stats:pd.DataFrame, df_base:pd.DataFrame, kode_lokasi:str, fi
         df_base_filtered['total_gol_4'].sum(),
         df_base_filtered['total_gol_5'].sum(),
     ]
+    values = [round((x/sum(values)),3) * 100 for x in values]
+    values = [float("%.2f" % round(x, 2)) for x in values]
+    _data = {
+        "vehicle_type": labels,
+        "percentage": values
+    }
+    fig_pie = create_pie_chart(_data=_data)
+    # fig_pie = go.Figure(
+    #     data=[go.Pie(
+    #         labels=labels,
+    #         values=values,
+    #         # hole=0.4,
+    #         textinfo='label+percent',
+    #         insidetextorientation='radial'
+    #         # pull=[0.01 for _ in range(3)]
+    #     )]
+    # )
     
-    fig_pie = go.Figure(
-        data=[go.Pie(
-            labels=labels,
-            values=values,
-            hole=0.4,
-            textinfo='label+percent',
-            pull=[0.01 for _ in range(3)]
-        )]
-    )
-    
-    fig_pie.update_layout(
-        title="Komposisi Jenis Kendaraan",
-        annotations=[dict(text='Kendaraan', x=0.5, y=0.5, font_size=15, showarrow=False)]
-    )
+    # fig_pie.update_layout(
+    #     title="Komposisi Jenis Kendaraan",
+    #     # annotations=[dict(text='Kendaraan', x=0.5, y=0.5, font_size=15, showarrow=False)]
+    # )
 
     return fig_scatter, fig_pie, {
         "total_tanpa_sepeda_motor": df_base_filtered['total_tanpa_sepeda_motor_summary'].sum(),

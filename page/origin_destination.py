@@ -190,6 +190,29 @@ def get_data_origin_dest_agg():
     # df = read_database(engine=engine, query=query)
     return pd.read_pickle("data/origin_destination_agg.pkl")
 
+location_survey = {
+    "RSI1": "Pelabuhan Merak",
+    "RSI2": "Jl. Raya Cirebon-Brebes (Pantura)",
+    "RSI3": "Tol segmen Ciledug-Pejagan",
+    "RSI4": "Jl. Siliwangi",
+    "RSI5": "Jl. Raya Tuban-Semarang (Pantura)",
+    "RSI6": "Tol segemen Caruban-Nganjuk",
+    "RSI7": "Jl. Caruban-Saradan",
+    "RSI8": "Jl. Raya Tulungagung-Trenggalek",
+    "RSI9": "Pelabuhan Banyuwangi",
+}
+
+display_text_select = {
+    "RSI1": "OD1 - Pelabuhan Merak",
+    "RSI2": "OD2 - Jl. Raya Cirebon-Brebes (Pantura)",
+    "RSI3": "OD3 - Tol segmen Ciledug-Pejagan",
+    "RSI4": "OD4 - Jl. Siliwangi",
+    "RSI5": "OD5 - Jl. Raya Tuban-Semarang (Pantura)",
+    "RSI6": "OD6 - Tol segemen Caruban-Nganjuk",
+    "RSI7": "OD7 - Jl. Caruban-Saradan",
+    "RSI8": "OD8 - Jl. Raya Tulungagung-Trenggalek",
+    "RSI9": "OD9 - Pelabuhan Banyuwangi",
+}
 
 df_vehicle_type = get_data_vehicle_type()
 df_origin_dest_agg = get_data_origin_dest_agg()
@@ -338,11 +361,25 @@ def chart_vehicle_origin_destination(kode_titik):
         st.plotly_chart(fig_matrix_dest)
     
     with st.container(border=True):
+        # 1. Add a 'Total' row at the bottom that sums up each column
+        pivot_matrix_origin_dest.loc['Grand Total'] = pivot_matrix_origin_dest.sum(axis=0)
+
+        # 2. Add a 'Total' column on the right that sums up each row (including the new 'Total' row)
+        pivot_matrix_origin_dest['Grand Total'] = pivot_matrix_origin_dest.sum(axis=1)
         fig_matrix_origin_dest = px.imshow(pivot_matrix_origin_dest, text_auto=True, aspect="auto", color_continuous_scale="ylorrd")
         fig_matrix_origin_dest.update_traces(
             hovertemplate="Dari <b>%{y}</b> ke <b>%{x}</b>: <b>%{z}</b><extra></extra>"
         )
-        fig_matrix_origin_dest.update_layout(title="Matriks Asal Tujuan Perjalanan", xaxis_title="Tujuan", yaxis_title="Asal", height=900)
+        fig_matrix_origin_dest.update_layout(title="Matriks Asal Tujuan Perjalanan", xaxis_title="Tujuan", yaxis_title="Asal", height=1550)
+        # To make the 'Total' labels stand out
+        fig_matrix_origin_dest.update_xaxes(
+            tickangle=45, # Tilt labels to prevent overlap
+            tickfont=dict(size=12),
+            side="top"
+        )
+        fig_matrix_origin_dest.update_yaxes(
+            tickfont=dict(size=12)
+        )
 
         st.plotly_chart(fig_matrix_origin_dest)
         
@@ -355,7 +392,7 @@ def chart_vehicle_origin_destination(kode_titik):
             mapbox_style="carto-positron",
             zoom=6.5,
             center={"lat": -7.5, "lon": 111.5},
-            title=f"Desire Line Map {kode_titik}"
+            title=f"Desire Line Map {display_text_select[kode_titik]}"
         )
         weight_flag = {}
         for i in range(len(df_map_line)):
@@ -408,7 +445,7 @@ def chart_vehicle_origin_destination(kode_titik):
 
         fig_dist_origin.update_layout(
             title={
-                "text": f"Sebaran Asal Perjalanan pada Lokasi {kode_titik}",
+                "text": f"Sebaran Asal Perjalanan pada Lokasi {location_survey[kode_titik]}",
                 "y": 0.95,
                 "x": 0.5,
                 "xanchor": "center",
@@ -451,19 +488,6 @@ def chart_vehicle_origin_destination(kode_titik):
             color_continuous_scale="Reds"
         )
         
-        location_survey = {
-            "RSI1": "Pelabuhan Merak",
-            "RSI2": "Jl. Raya Cirebon-Brebes (Pantura)",
-            "RSI3": "Tol segmen Ciledug-Pejagan",
-            "RSI4": "Jl. Siliwangi",
-            "RSI5": "Jl. Raya Tuban-Semarang (Pantura)",
-            "RSI6": "Tol segemen Caruban-Nganjuk",
-            "RSI7": "Jl. Caruban-Saradan",
-            "RSI8": "Jl. Raya Tulungagung-Trenggalek",
-            "RSI9": "Pelabuhan Banyuwangi",
-        }
-        
-
         fig_dist_dest.update_layout(
             title={
                 "text": f"Sebaran Tujuan Perjalanan pada Lokasi {kode_titik}",
@@ -493,17 +517,6 @@ def chart_vehicle_origin_destination(kode_titik):
         
         
 def show():
-    display_text_select = {
-        "RSI1": "OD1",
-        "RSI2": "OD2 - RSI",
-        "RSI3": "OD3",
-        "RSI4": "OD4 - RSI",
-        "RSI5": "OD5 - RSI",
-        "RSI6": "OD6",
-        "RSI7": "OD7 - RSI",
-        "RSI8": "OD8 - RSI",
-        "RSI9": "OD9",
-    }
     kode_titik_select = st.selectbox("Filter Kode Titik", sorted(kode_titik), key=f"kode_titik_select", format_func=lambda x: display_text_select[x])
     chart_vehicle_origin_destination(kode_titik_select)
 
