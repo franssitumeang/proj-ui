@@ -3,9 +3,10 @@ pandas
 fastexcel
 openpyxl==3.1.5
 sqlalchemy
-streamlit
-streamlit-on-Hover-tabs
+streamlit==1.45.1
 plotly==5.24.1
+streamlit==1.45.1
+streamlit-authenticator==0.4.2
+streamlit-cookies-manager==0.2.0
+streamlit-on-Hover-tabs==1.0.1
 streamlit_folium==0.23.1
-streamlit-authenticator
-streamlit-cookies-manager
