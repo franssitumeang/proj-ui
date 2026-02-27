@@ -422,8 +422,8 @@ if tabs =='Traffic Counting':
             st.markdown(f'<p style="font-size: 14px;">Arah dari: {arah_dari}</p>', unsafe_allow_html=True)
             st.markdown(f'<p style="font-size: 14px;">Arah menuju: {arah_menuju}</p>', unsafe_allow_html=True)
             st.write("**Arah 2**")
-            st.markdown(f'<p style="font-size: 14px;">Arah dari: {arah_menuju}</p>', unsafe_allow_html=True)
-            st.markdown(f'<p style="font-size: 14px;">Arah menuju: {arah_dari}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size: 14px;">Arah dari: {"Ciracas" if last_object_clicked_tooltip == "PLUSJABO-8" else arah_menuju}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size: 14px;">Arah menuju: {"Cipayung" if last_object_clicked_tooltip == "PLUSJABO-8" else arah_dari}</p>', unsafe_allow_html=True)
 
     
     if last_object_clicked_tooltip:
@@ -446,37 +446,39 @@ if tabs =='Traffic Counting':
                 
         with c2.container(border=True):
             fig_hk_1, fig_pie_hk_1, agg_data = chart_stats(df_stats=df_stats, df_base=df_base, kode_lokasi=last_object_clicked_tooltip, filter_sheet="HK_Arah-1", fig_title="Fluktuasi Volume Kendaraan - Satu Arah (Arah-1)")
-            st.plotly_chart(fig_hk_1, use_container_width=True, key=f"{key}_fig_hk_1")
-            st.plotly_chart(fig_pie_hk_1, use_container_width=True, key=f"{key}_fig_pie_hk_1")
-            
-            with st.container(border=True, height=300):
-                st.markdown(f'<p style="font-size: 16px; text-decoration: underline;">Total Volume Kendaraan {durasi} - Satu arah</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 15px;">- Tanpa motor: {agg_data.get("total_tanpa_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 15px;">- Dengan motor: {agg_data.get("total_dengan_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Nama ruas jalan: {nama_ruas_jalan}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal_hk}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Arah Dari: {arah_dari}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Arah Menuju: {arah_menuju}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_1_hk}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_1_hk} smp/jam</p>', unsafe_allow_html=True)
+            if agg_data.get("total_tanpa_sepeda_motor"):
+                st.plotly_chart(fig_hk_1, use_container_width=True, key=f"{key}_fig_hk_1")
+                st.plotly_chart(fig_pie_hk_1, use_container_width=True, key=f"{key}_fig_pie_hk_1")
+                
+                with st.container(border=True, height=300):
+                    st.markdown(f'<p style="font-size: 16px; text-decoration: underline;">Total Volume Kendaraan {durasi} - Satu arah</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 15px;">- Tanpa motor: {agg_data.get("total_tanpa_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 15px;">- Dengan motor: {agg_data.get("total_dengan_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Nama ruas jalan: {nama_ruas_jalan}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal_hk}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Arah Dari: {arah_dari}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Arah Menuju: {arah_menuju}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_1_hk}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_1_hk} smp/jam</p>', unsafe_allow_html=True)
                 
             
         with c3.container(border=True):
             fig_hk_2, fig_pie_hk_2, agg_data = chart_stats(df_stats=df_stats, df_base=df_base, kode_lokasi=last_object_clicked_tooltip, filter_sheet="HK_Arah-2", fig_title="Fluktuasi Volume Kendaraan - Satu Arah (Arah-2)")
-            st.plotly_chart(fig_hk_2, use_container_width=True, key=f"{key}_fig_hk_2")
-            
-            st.plotly_chart(fig_pie_hk_2, use_container_width=True, key=f"{key}_fig_pie_hk_2")
-            
-            with st.container(border=True, height=300):
-                st.markdown(f'<p style="font-size: 16px; text-decoration: underline;">Total Volume Kendaraan {durasi} - Satu arah</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 15px;">- Tanpa motor: {agg_data.get("total_tanpa_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 15px;">- Dengan motor: {agg_data.get("total_dengan_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Nama ruas jalan: {nama_ruas_jalan}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal_hk}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Arah Dari: {arah_menuju}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Arah Menuju: {arah_dari}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_2_hk}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_2_hk} smp/jam</p>', unsafe_allow_html=True)
+            if agg_data.get("total_tanpa_sepeda_motor"):
+                st.plotly_chart(fig_hk_2, use_container_width=True, key=f"{key}_fig_hk_2")
+                
+                st.plotly_chart(fig_pie_hk_2, use_container_width=True, key=f"{key}_fig_pie_hk_2")
+                
+                with st.container(border=True, height=300):
+                    st.markdown(f'<p style="font-size: 16px; text-decoration: underline;">Total Volume Kendaraan {durasi} - Satu arah</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 15px;">- Tanpa motor: {agg_data.get("total_tanpa_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 15px;">- Dengan motor: {agg_data.get("total_dengan_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Nama ruas jalan: {nama_ruas_jalan}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal_hk}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Arah Dari: {arah_menuju}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Arah Menuju: {arah_dari}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_2_hk}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_2_hk} smp/jam</p>', unsafe_allow_html=True)
                 
         
         st.markdown(f"<h1 style='text-align: center; color: black;'>Profil Hari Libur - {last_object_clicked_tooltip}</h1>", unsafe_allow_html=True)
@@ -498,35 +500,37 @@ if tabs =='Traffic Counting':
                 
         with c2.container(border=True):
             fig_hl_1, fig_pie_hl_1, agg_data = chart_stats(df_stats=df_stats, df_base=df_base, kode_lokasi=last_object_clicked_tooltip, filter_sheet="HL_Arah-1", fig_title="Fluktuasi Volume Kendaraan - Satu Arah (Arah-1)")
-            st.plotly_chart(fig_hl_1, use_container_width=True, key=f"{key}_fig_hl_1")
-            st.plotly_chart(fig_pie_hl_1, use_container_width=True, key=f"{key}_fig_pie_hl_1")
-            
-            with st.container(border=True, height=300):
-                st.markdown(f'<p style="font-size: 16px; text-decoration: underline;">Total Volume Kendaraan {durasi} - Satu arah</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 15px;">- Tanpa motor: {agg_data.get("total_tanpa_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 15px;">- Dengan motor: {agg_data.get("total_dengan_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Nama ruas jalan: {nama_ruas_jalan}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal_hl}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Arah Dari: {arah_dari}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Arah Menuju: {arah_menuju}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_1_hl}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_1_hl} smp/jam</p>', unsafe_allow_html=True)
+            if agg_data.get("total_tanpa_sepeda_motor"):
+                st.plotly_chart(fig_hl_1, use_container_width=True, key=f"{key}_fig_hl_1")
+                st.plotly_chart(fig_pie_hl_1, use_container_width=True, key=f"{key}_fig_pie_hl_1")
+                
+                with st.container(border=True, height=300):
+                    st.markdown(f'<p style="font-size: 16px; text-decoration: underline;">Total Volume Kendaraan {durasi} - Satu arah</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 15px;">- Tanpa motor: {agg_data.get("total_tanpa_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 15px;">- Dengan motor: {agg_data.get("total_dengan_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Nama ruas jalan: {nama_ruas_jalan}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal_hl}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Arah Dari: {arah_dari}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Arah Menuju: {arah_menuju}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_1_hl}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_1_hl} smp/jam</p>', unsafe_allow_html=True)
                 
         with c3.container(border=True):
             fig_hl_2, fig_pie_hl_2, agg_data = chart_stats(df_stats=df_stats, df_base=df_base, kode_lokasi=last_object_clicked_tooltip, filter_sheet="HL_Arah-2", fig_title="Fluktuasi Volume Kendaraan - Satu Arah (Arah-2)")
-            st.plotly_chart(fig_hl_2, use_container_width=True, key=f"{key}_fig_hl_2")
-            st.plotly_chart(fig_pie_hl_2, use_container_width=True, key=f"{key}_fig_pie_hl_2")
-            
-            with st.container(border=True, height=300):
-                st.markdown(f'<p style="font-size: 16px; text-decoration: underline;">Total Volume Kendaraan {durasi} - Satu arah</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 15px;">- Tanpa motor: {agg_data.get("total_tanpa_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 15px;">- Dengan motor: {agg_data.get("total_dengan_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Nama ruas jalan: {nama_ruas_jalan}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal_hl}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Arah Dari: {arah_menuju}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Arah Menuju: {arah_dari}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_2_hl}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_2_hl} smp/jam</p>', unsafe_allow_html=True)
+            if agg_data.get("total_tanpa_sepeda_motor"):
+                st.plotly_chart(fig_hl_2, use_container_width=True, key=f"{key}_fig_hl_2")
+                st.plotly_chart(fig_pie_hl_2, use_container_width=True, key=f"{key}_fig_pie_hl_2")
+                
+                with st.container(border=True, height=300):
+                    st.markdown(f'<p style="font-size: 16px; text-decoration: underline;">Total Volume Kendaraan {durasi} - Satu arah</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 15px;">- Tanpa motor: {agg_data.get("total_tanpa_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 15px;">- Dengan motor: {agg_data.get("total_dengan_sepeda_motor")} kendaraan</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Nama ruas jalan: {nama_ruas_jalan}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Hari, tanggal: {hari_tanggal_hl}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Arah Dari: {arah_menuju}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Arah Menuju: {arah_dari}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Jam puncak: {jam_puncak_arah_2_hl}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p style="font-size: 16px;">Vol. jam Puncak: {vol_jam_puncak_arah_2_hl} smp/jam</p>', unsafe_allow_html=True)
 
 elif tabs =='Travel Journey':
     st.header("Survei Travel Journey")
